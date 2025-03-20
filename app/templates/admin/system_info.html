@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}系统信息 - 登录系统{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>系统信息</h1>
+</div>
+
+<!-- 系统基本信息卡片 -->
+<div class="dashboard-card">
+    <h2 class="dashboard-title">基本信息</h2>
+    <p>系统版本: v1.0.0</p>
+    <p>数据库类型: SQLite</p>
+    <p>当前时间: <span id="current-time"></span></p>
+    <p>用户总数: {{ user_count }}</p>
+</div>
+
+<!-- 已注册应用列表改为已注册平台列表 -->
+<div class="dashboard-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 class="dashboard-title">已注册的平台</h2>
+        <a href="{{ url_for('admin.new_app') }}" class="btn btn-primary">添加新平台</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>平台名称</th>
+                <th>Client ID</th>
+                <th>重定向URI</th>
+                <th>状态</th>
+                <th>注册时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in applications %}
+            <tr>
+                <td>{{ app.name }}</td>
+                <td>{{ app.client_id }}</td>
+                <td>{{ app.redirect_uri }}</td>
+                <td>
+                    <span class="status-badge {% if app.is_active %}status-active{% else %}status-inactive{% endif %}">
+                        {{ "活跃" if app.is_active else "禁用" }}
+                    </span>
+                </td>
+                <td>{{ app.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('admin.edit_app', app_id=app.id) }}" class="btn btn-secondary">编辑</a>
+                        <a href="{{ url_for('admin.manage_app_users', app_id=app.id) }}" class="btn btn-primary">管理授权用户</a>
+                        <form method="post" action="{{ url_for('admin.delete_app', app_id=app.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除此平台吗？此操作不可撤销。');">
+                            <button type="submit" class="btn btn-danger">删除</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 更新当前时间的函数
+    function updateCurrentTime() {
+        const now = new Date();
+        document.getElementById('current-time').textContent = now.toLocaleString();
+    }
+    
+    // 页面加载时更新时间，并每秒更新一次
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+</script>
+{% endblock %} 

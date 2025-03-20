@@ -1,0 +1,56 @@
+# 编译的 Python 文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 分发 / 打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask 相关
+instance/
+.webassets-cache
+
+# 环境变量和虚拟环境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 日志
+logs/
+*.log
+
+# 本地数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE 相关
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 项目特定的临时文件
+.coverage
+htmlcov/
+.pytest_cache/ 

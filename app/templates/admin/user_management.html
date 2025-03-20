@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 登录系统{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>用户管理</h1>
+</div>
+
+<div class="dashboard-card">
+    <div style="margin-bottom: 1rem;">
+        <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">添加新用户</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>最近登录</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ "管理员" if user.is_admin else "普通用户" }}</td>
+                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else "从未登录" }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-secondary">编辑</a>
+                        {% if user.id != current_user.id %}
+                        <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除此用户吗？此操作不可撤销。');">
+                            <button type="submit" class="btn btn-danger">删除</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+{% endblock %} 

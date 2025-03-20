@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}用户中心 - 登录系统{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1 class="welcome-title">欢迎使用用户中心</h1>
+</div>
+
+<!-- 功能区块网格布局 -->
+<div class="feature-grid">
+    <!-- 用户管理卡片 -->
+    <div class="dashboard-card">
+        <div class="feature-icon">👥</div>
+        <h2 class="dashboard-title">用户管理</h2>
+        <p>管理系统用户，包括创建、编辑和删除用户账户。控制用户权限和角色分配。</p>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-primary">查看所有用户</a>
+    </div>
+    
+    <!-- 个人中心卡片 -->
+    <div class="dashboard-card">
+        <div class="feature-icon">👤</div>
+        <h2 class="dashboard-title">个人中心</h2>
+        <p>查看和管理您的个人账户信息，包括用户名、邮箱和登录记录，以及修改您的密码。</p>
+        <a href="{{ url_for('user.profile') }}" class="btn btn-primary">访问个人中心</a>
+    </div>
+    
+    <!-- 系统信息卡片 -->
+    <div class="dashboard-card">
+        <div class="feature-icon">🔧</div>
+        <h2 class="dashboard-title">系统信息</h2>
+        <p>查看系统基本信息和管理已注册的平台。当前有 {{ registered_app_count }} 个平台注册在本系统。</p>
+        <a href="{{ url_for('admin.system_info') }}" class="btn btn-primary">查看系统信息</a>
+    </div>
+    
+    <!-- 权限申请卡片 -->
+    <div class="dashboard-card">
+        <div class="feature-icon">🔐</div>
+        <h2 class="dashboard-title">平台授权</h2>
+        <p>管理用户对平台的访问权限申请，审批用户提交的平台访问请求。</p>
+        <a href="{{ url_for('admin.app_requests') }}" class="btn btn-primary">
+            处理申请
+            {% if pending_count > 0 %}
+            <span class="badge">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- 系统概览卡片 -->
+<div class="dashboard-card">
+    <h2 class="dashboard-title">系统概览</h2>
+    <p>欢迎使用单点登录系统用户中心。通过此控制台，您可以管理用户账户、查看系统信息和管理已注册的平台。</p>
+    <p>作为管理员，您可以：</p>
+    <ul>
+        <li>创建、编辑和删除用户</li>
+        <li>管理平台的注册信息</li>
+        <li>控制用户对不同平台的访问权限</li>
+        <li>查看系统基本信息和运行状态</li>
+    </ul>
+    <p>选择左侧菜单中的选项或上方卡片中的功能按钮开始使用。</p>
+</div>
+
+<style>
+    .welcome-title, h1:first-of-type {
+        font-size: 1.6rem !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_css %}
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: #4CAF50;
+}
+{% endblock %} 

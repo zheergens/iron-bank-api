@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理平台授权用户 - 登录系统</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #333;
+            color: white;
+            padding-top: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid #444;
+            margin-bottom: 20px;
+        }
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: white;
+        }
+        .menu-items {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .menu-items li {
+            padding: 0;
+        }
+        .menu-items a {
+            display: block;
+            padding: 12px 20px;
+            color: #ddd;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .menu-items a:hover, .menu-items a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        .app-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .app-title {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #0b7dda;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .flash-messages {
+            margin-bottom: 1rem;
+        }
+        .flash-message {
+            background-color: #ffcccc;
+            color: #cc0000;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        .success {
+            background-color: #ccffcc;
+            color: #00cc00;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #2196F3;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧菜单栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>管理控制台</h2>
+        </div>
+        <ul class="menu-items">
+            <li><a href="{{ url_for('admin.index') }}">控制台首页</a></li>
+            <li><a href="{{ url_for('admin.users') }}">用户管理</a></li>
+            <li><a href="{{ url_for('auth.profile') }}">个人中心</a></li>
+            <li><a href="{{ url_for('admin.system_info') }}" class="active">系统信息</a></li>
+            <li><a href="{{ url_for('auth.logout') }}">退出登录</a></li>
+        </ul>
+    </div>
+    
+    <!-- 主要内容区 -->
+    <div class="main-content">
+        <div class="header">
+            <h1>管理平台授权用户 - {{ app.name }}</h1>
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message{% if 'success' in message %} success{% endif %}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <a href="{{ url_for('admin.system_info') }}" class="back-link">← 返回系统信息</a>
+        
+        <!-- 平台基本信息 -->
+        <div class="app-card">
+            <h2 class="app-title">平台信息</h2>
+            <p><strong>平台名称:</strong> {{ app.name }}</p>
+            <p><strong>Client ID:</strong> {{ app.client_id }}</p>
+            <p><strong>重定向URI:</strong> {{ app.redirect_uri }}</p>
+            <p><strong>状态:</strong> {{ "活跃" if app.is_active else "禁用" }}</p>
+        </div>
+        
+        <!-- 已授权用户列表 -->
+        <div class="app-card">
+            <h2 class="app-title">授权用户管理</h2>
+            <p>为平台"{{ app.name }}"添加或移除授权用户。只有被授权的用户才能登录此平台。</p>
+            
+            <div class="search-box">
+                <input type="text" id="user-search" placeholder="搜索用户..." />
+                <button class="btn btn-primary" id="search-btn">搜索</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>授权状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ "管理员" if user.is_admin else "普通用户" }}</td>
+                        <td>{{ "已授权" if user.is_authorized else "未授权" }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if user.is_authorized %}
+                                <form method="post" action="{{ url_for('admin.remove_app_user', app_id=app.id, user_id=user.id) }}">
+                                    <button type="submit" class="btn btn-danger">移除授权</button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{{ url_for('admin.add_app_user', app_id=app.id, user_id=user.id) }}">
+                                    <button type="submit" class="btn btn-primary">授权访问</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // 搜索功能
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const username = row.cells[0].textContent.toLowerCase();
+                const email = row.cells[1].textContent.toLowerCase();
+                
+                if (username.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
