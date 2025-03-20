@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_login import LoginManager
 from app.config import Config
 from app.models.user import db, User
@@ -26,6 +26,11 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(user_bp, url_prefix='/user')
+    
+    # 添加根路由重定向到用户个人资料页面
+    @app.route('/')
+    def index():
+        return redirect(url_for('user.profile'))
     
     # 创建数据库表并初始化管理员
     with app.app_context():
