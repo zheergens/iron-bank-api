@@ -22,7 +22,7 @@
     <div class="profile-card">
         <div class="card-header">
             <h2>基本信息</h2>
-            <button class="btn btn-primary" onclick="showEditDialog()">
+            <button class="btn btn-primary" onclick="openModal()">
                 <i class="fas fa-edit"></i>
                 编辑资料
             </button>
@@ -57,45 +57,46 @@
     </div>
 </div>
 
-<!-- 编辑资料对话框 -->
-<div id="edit-dialog" class="modal">
+<!-- 编辑个人资料弹窗 -->
+<div id="editProfileModal" class="modal" style="display: none;">
     <div class="modal-content">
-        <span class="close" onclick="closeEditDialog()">&times;</span>
-        <h2>编辑个人资料</h2>
-        <form id="editForm" method="POST" action="{{ url_for('user.profile_update') }}" class="profile-form">
+        <div class="modal-header">
+            <h2 class="modal-title">编辑个人资料</h2>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <form id="profileForm" action="{{ url_for('user.profile_update') }}" method="post">
             <div class="form-group">
-                <label class="form-label">用户名</label>
-                <input type="text" class="form-input" value="{{ current_user.username }}" readonly>
+                <label for="username">用户名</label>
+                <input type="text" id="username" value="{{ current_user.username }}" disabled>
             </div>
-            
             <div class="form-group">
-                <label class="form-label">邮箱地址</label>
-                <input type="email" class="form-input" value="{{ current_user.email }}" readonly>
+                <label for="email">邮箱地址</label>
+                <input type="email" id="email" name="email" value="{{ current_user.email }}" placeholder="请输入邮箱地址">
+                <div class="error-message">请输入有效的邮箱地址</div>
             </div>
-            
             <div class="form-group">
-                <label class="form-label">手机号码</label>
-                <input type="tel" class="form-input" name="phone" value="{{ current_user.phone or '' }}" placeholder="请输入手机号码">
+                <label for="phone">手机号码</label>
+                <input type="tel" id="phone" name="phone" value="{{ current_user.phone or '' }}" placeholder="请输入手机号码">
+                <div class="error-message">请输入有效的手机号码</div>
             </div>
-
             <div class="form-group">
-                <label class="form-label">当前密码</label>
-                <input type="password" class="form-input" name="current_password" placeholder="请输入当前密码">
+                <label for="current_password">当前密码</label>
+                <input type="password" id="current_password" name="current_password" placeholder="请输入当前密码">
+                <div class="error-message">请输入当前密码</div>
             </div>
-            
             <div class="form-group">
-                <label class="form-label">新密码 (如需修改)</label>
-                <input type="password" class="form-input" name="new_password" placeholder="请输入新密码">
+                <label for="new_password">新密码（如需修改）</label>
+                <input type="password" id="new_password" name="new_password" placeholder="请输入新密码">
+                <div class="error-message">密码长度至少为6位</div>
             </div>
-            
             <div class="form-group">
-                <label class="form-label">确认新密码</label>
-                <input type="password" class="form-input" name="confirm_password" placeholder="请再次输入新密码">
+                <label for="confirm_password">确认新密码</label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="请再次输入新密码">
+                <div class="error-message">两次输入的密码不一致</div>
             </div>
-            
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="closeEditDialog()">取消</button>
-                <button type="submit" class="btn btn-primary">保存更改</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn btn-save">保存更改</button>
             </div>
         </form>
     </div>
@@ -106,20 +107,75 @@
 {% block scripts %}
 {{ super() }}
 <script>
-function showEditDialog() {
-    document.getElementById('edit-dialog').style.display = 'flex';
+function openModal() {
+    document.getElementById('editProfileModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
-function closeEditDialog() {
-    document.getElementById('edit-dialog').style.display = 'none';
+function closeModal() {
+    document.getElementById('editProfileModal').style.display = 'none';
+    document.body.style.overflow = '';
 }
 
-// 关闭模态框当点击外部区域
-window.onclick = function(event) {
-    const editDialog = document.getElementById('edit-dialog');
-    if (event.target == editDialog) {
-        editDialog.style.display = 'none';
+// 点击模态框外部关闭
+document.getElementById('editProfileModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
     }
+});
+
+// 表单验证
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+    let isValid = true;
+    
+    // 邮箱验证
+    const email = document.getElementById('email');
+    if (email.value && !validateEmail(email.value)) {
+        email.classList.add('invalid');
+        isValid = false;
+    } else {
+        email.classList.remove('invalid');
+    }
+    
+    // 手机号验证
+    const phone = document.getElementById('phone');
+    if (phone.value && !validatePhone(phone.value)) {
+        phone.classList.add('invalid');
+        isValid = false;
+    } else {
+        phone.classList.remove('invalid');
+    }
+    
+    // 密码验证
+    const newPassword = document.getElementById('new_password');
+    const confirmPassword = document.getElementById('confirm_password');
+    if (newPassword.value) {
+        if (newPassword.value.length < 6) {
+            newPassword.classList.add('invalid');
+            isValid = false;
+        } else {
+            newPassword.classList.remove('invalid');
+        }
+        
+        if (newPassword.value !== confirmPassword.value) {
+            confirmPassword.classList.add('invalid');
+            isValid = false;
+        } else {
+            confirmPassword.classList.remove('invalid');
+        }
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+});
+
+function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePhone(phone) {
+    return /^1[3-9]\d{9}$/.test(phone);
 }
 </script>
 {% endblock %}
