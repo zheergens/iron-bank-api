@@ -1,176 +1,125 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
 {% block title %}个人中心 - 登录系统{% endblock %}
 
-{% block content %}
-<div class="header">
-    <h1>个人中心</h1>
-</div>
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css', v='1.0.0') }}">
+{% endblock %}
 
-<div class="dashboard-card">
-    <div class="user-info">
-        <div class="info-row">
-            <div class="info-label">用户名:</div>
-            <div class="info-value">{{ current_user.username }}</div>
+{% block admin_content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <span class="avatar-text">{{ current_user.username[0].upper() }}</span>
         </div>
-        <div class="info-row">
-            <div class="info-label">邮箱:</div>
-            <div class="info-value">{{ current_user.email }}</div>
-        </div>
-        <div class="info-row">
-            <div class="info-label">角色:</div>
-            <div class="info-value">{{ "管理员" if current_user.is_admin else "普通用户" }}</div>
-        </div>
-        <div class="info-row">
-            <div class="info-label">上次登录:</div>
-            <div class="info-value">{{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if current_user.last_login else "从未登录" }}</div>
+        <div class="profile-info">
+            <h1 class="profile-name">{{ current_user.username }}</h1>
+            <p class="profile-role">{{ '管理员' if current_user.role == 'admin' else '普通用户' }}</p>
         </div>
     </div>
-    
-    <div class="action-buttons">
-        <a href="{{ url_for('user.change_password') }}" class="btn btn-primary">修改密码</a>
-    </div>
-</div>
 
-<!-- 平台权限申请 -->
-<div class="dashboard-card">
-    <h2 class="dashboard-title">平台权限申请</h2>
-    <p>您可以申请访问以下平台的权限：</p>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>平台名称</th>
-                <th>状态</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for app in available_apps %}
-            <tr>
-                <td>{{ app.name }}</td>
-                <td>
-                    {% if app.has_access %}
-                        <span class="status-badge status-active">已授权</span>
-                    {% elif app.pending_request %}
-                        <span class="status-badge status-pending">申请中</span>
-                    {% elif app.rejected_request %}
-                        <span class="status-badge status-rejected">已拒绝</span>
-                    {% else %}
-                        <span class="status-badge status-inactive">未授权</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if app.has_access %}
-                        <span>已获授权</span>
-                    {% elif app.pending_request %}
-                        <span>审核中</span>
-                    {% elif app.rejected_request %}
-                        <button class="btn btn-primary" onclick="showRequestForm('{{ app.id }}')">重新申请</button>
-                    {% else %}
-                        <button class="btn btn-primary" onclick="showRequestForm('{{ app.id }}')">申请权限</button>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- 申请表单对话框 -->
-<div id="request-dialog" class="modal" style="display: none;">
-    <div class="modal-content">
-        <span class="close" onclick="closeRequestForm()">&times;</span>
-        <h2>申请平台访问权限</h2>
-        <form id="request-form" method="post" action="{{ url_for('user.request_app_access') }}">
-            <input type="hidden" id="app_id" name="app_id" value="">
+    <div class="profile-card">
+        <div class="card-header">
+            <h2>基本信息</h2>
+            <button class="btn btn-primary" onclick="showEditDialog()">
+                <i class="fas fa-edit"></i>
+                编辑资料
+            </button>
+        </div>
+        
+        <div class="profile-form">
             <div class="form-group">
-                <label for="reason">申请原因</label>
-                <textarea id="reason" name="reason" rows="4" required></textarea>
+                <label class="form-label">用户名</label>
+                <input type="text" class="form-input" value="{{ current_user.username }}" readonly>
             </div>
+            
+            <div class="form-group">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" class="form-input" value="{{ current_user.email }}" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">手机号码</label>
+                <input type="tel" class="form-input" value="{{ current_user.phone or '' }}" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">注册时间</label>
+                <input type="text" class="form-input" value="{{ current_user.created_at.strftime('%Y-%m-%d %H:%M') }}" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">最后登录</label>
+                <input type="text" class="form-input" value="{{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else '从未登录' }}" readonly>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑资料对话框 -->
+<div id="edit-dialog" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditDialog()">&times;</span>
+        <h2>编辑个人资料</h2>
+        <form id="editForm" method="POST" action="{{ url_for('user.profile_update') }}" class="profile-form">
+            <div class="form-group">
+                <label class="form-label">用户名</label>
+                <input type="text" class="form-input" value="{{ current_user.username }}" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" class="form-input" value="{{ current_user.email }}" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">手机号码</label>
+                <input type="tel" class="form-input" name="phone" value="{{ current_user.phone or '' }}" placeholder="请输入手机号码">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">当前密码</label>
+                <input type="password" class="form-input" name="current_password" placeholder="请输入当前密码">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">新密码 (如需修改)</label>
+                <input type="password" class="form-input" name="new_password" placeholder="请输入新密码">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">确认新密码</label>
+                <input type="password" class="form-input" name="confirm_password" placeholder="请再次输入新密码">
+            </div>
+            
             <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="closeRequestForm()">取消</button>
-                <button type="submit" class="btn btn-primary">提交申请</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditDialog()">取消</button>
+                <button type="submit" class="btn btn-primary">保存更改</button>
             </div>
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_css %}
-.info-row {
-    display: flex;
-    margin-bottom: 1rem;
-}
-.info-label {
-    font-weight: bold;
-    width: 150px;
-}
-.info-value {
-    flex: 1;
-}
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-}
-.user-info {
-    margin-bottom: 2rem;
-}
-.modal {
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
-}
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px;
-    border-radius: 8px;
-}
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-.button-group {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 15px;
-}
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-    function showRequestForm(appId) {
-        document.getElementById('app_id').value = appId;
-        document.getElementById('request-dialog').style.display = 'block';
+function showEditDialog() {
+    document.getElementById('edit-dialog').style.display = 'flex';
+}
+
+function closeEditDialog() {
+    document.getElementById('edit-dialog').style.display = 'none';
+}
+
+// 关闭模态框当点击外部区域
+window.onclick = function(event) {
+    const editDialog = document.getElementById('edit-dialog');
+    if (event.target == editDialog) {
+        editDialog.style.display = 'none';
     }
-    
-    function closeRequestForm() {
-        document.getElementById('request-dialog').style.display = 'none';
-    }
+}
 </script>
 {% endblock %}

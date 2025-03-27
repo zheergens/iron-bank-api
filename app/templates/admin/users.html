@@ -1,0 +1,115 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}用户管理 - 管理系统{% endblock %}
+
+{% block admin_content %}
+<div class="content-card">
+    <div class="header">
+        <h1>用户管理</h1>
+        <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 添加用户
+        </a>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>手机号</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>注册时间</th>
+                    <th>最后登录</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone or '未设置' }}</td>
+                    <td>
+                        <span class="badge badge-primary">{{ user.role }}</span>
+                    </td>
+                    <td>
+                        <span class="badge {% if user.is_active %}badge-primary{% else %}badge-default{% endif %}">
+                            {{ '活跃' if user.is_active else '禁用' }}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '从未登录' }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-primary btn-small">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-danger btn-small" onclick="deleteUser('{{ user.id }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <button class="btn btn-secondary btn-small">&lt;</button>
+        <button class="btn btn-primary btn-small">1</button>
+        <button class="btn btn-secondary btn-small">2</button>
+        <button class="btn btn-secondary btn-small">3</button>
+        <button class="btn btn-secondary btn-small">&gt;</button>
+    </div>
+</div>
+
+<!-- 删除确认对话框 -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>确认删除</h3>
+        </div>
+        <p>确定要删除这个用户吗？此操作无法撤销。</p>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">删除</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+let userIdToDelete = null;
+
+function deleteUser(userId) {
+    userIdToDelete = userId;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+    userIdToDelete = null;
+}
+
+function confirmDelete() {
+    if (userIdToDelete) {
+        fetch(`/admin/users/${userIdToDelete}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+    closeDeleteModal();
+}
+</script>
+{% endblock %} 

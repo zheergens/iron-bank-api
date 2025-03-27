@@ -1,59 +1,32 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
+from app.models.application import Application, UserApplication
 import datetime
-from werkzeug.urls import url_parse
+from urllib.parse import urlparse
 import uuid
-from app.models.application import UserApplication
 
 auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('auth.profile')
-        return redirect(next_page)
-    
-    # 获取重定向应用的client_id
-    client_id = request.args.get('client_id')
-    redirect_uri = request.args.get('redirect_uri')
+        return redirect(url_for('user.profile'))
     
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        remember = 'remember' in request.form
+        remember = request.form.get('remember', False)
         
         user = User.find_by_username(username)
-        
-        if user is None or not user.check_password(password):
-            flash('用户名或密码错误')
-            return render_template('login.html')
-        
-        login_user(user, remember=remember)
-        user.update_last_login()
-        
-        next_page = request.args.get('next')
-        
-        # 如果是应用请求的登录，生成授权码并重定向
-        if client_id and redirect_uri:
-            app_config = current_app.config['REGISTERED_APPS'].get(client_id)
-            if app_config and app_config['redirect_uri'] == redirect_uri:
-                auth_code = str(uuid.uuid4())
-                session[f'auth_code_{auth_code}'] = {
-                    'user_id': current_user.id,
-                    'client_id': client_id,
-                    'expires': (datetime.datetime.utcnow() + datetime.timedelta(minutes=10)).timestamp()
-                }
-                return redirect(f"{redirect_uri}?code={auth_code}")
-        
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('auth.profile')
-        
-        return redirect(next_page)
+        if user and user.check_password(password):
+            login_user(user, remember=remember)
+            user.update_last_login()
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('user.profile'))
+        flash('用户名或密码错误', 'error')
     
-    return render_template('login.html', client_id=client_id, redirect_uri=redirect_uri)
+    return render_template('auth/login.html')
 
 @auth.route('/logout')
 @login_required

@@ -1,77 +1,150 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
 {% block title %}系统信息 - 登录系统{% endblock %}
 
-{% block content %}
-<div class="header">
-    <h1>系统信息</h1>
-</div>
-
-<!-- 系统基本信息卡片 -->
-<div class="dashboard-card">
-    <h2 class="dashboard-title">基本信息</h2>
-    <p>系统版本: v1.0.0</p>
-    <p>数据库类型: SQLite</p>
-    <p>当前时间: <span id="current-time"></span></p>
-    <p>用户总数: {{ user_count }}</p>
-</div>
-
-<!-- 已注册应用列表改为已注册平台列表 -->
-<div class="dashboard-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 class="dashboard-title">已注册的平台</h2>
-        <a href="{{ url_for('admin.new_app') }}" class="btn btn-primary">添加新平台</a>
+{% block admin_content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">系统信息</h2>
     </div>
     
-    <table>
-        <thead>
-            <tr>
-                <th>平台名称</th>
-                <th>Client ID</th>
-                <th>重定向URI</th>
-                <th>状态</th>
-                <th>注册时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for app in applications %}
-            <tr>
-                <td>{{ app.name }}</td>
-                <td>{{ app.client_id }}</td>
-                <td>{{ app.redirect_uri }}</td>
-                <td>
-                    <span class="status-badge {% if app.is_active %}status-active{% else %}status-inactive{% endif %}">
-                        {{ "活跃" if app.is_active else "禁用" }}
-                    </span>
-                </td>
-                <td>{{ app.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td>
-                    <div class="action-buttons">
-                        <a href="{{ url_for('admin.edit_app', app_id=app.id) }}" class="btn btn-secondary">编辑</a>
-                        <a href="{{ url_for('admin.manage_app_users', app_id=app.id) }}" class="btn btn-primary">管理授权用户</a>
-                        <form method="post" action="{{ url_for('admin.delete_app', app_id=app.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除此平台吗？此操作不可撤销。');">
-                            <button type="submit" class="btn btn-danger">删除</button>
-                        </form>
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">系统版本</div>
+            <div class="info-value">{{ system_info.version }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">运行时间</div>
+            <div class="info-value">{{ system_info.uptime }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">CPU使用率</div>
+            <div class="info-value">
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ system_info.cpu_usage }}%"></div>
+                </div>
+                <span class="percentage">{{ system_info.cpu_usage }}%</span>
+            </div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">内存使用率</div>
+            <div class="info-value">
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ system_info.memory_usage }}%"></div>
+                </div>
+                <span class="percentage">{{ system_info.memory_usage }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">已注册的应用</h2>
+        <div class="admin-actions">
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                注册新应用
+            </button>
+        </div>
+    </div>
+    
+    <div class="app-grid">
+        {% for app in registered_apps %}
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-icon">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <div class="app-status {% if app.is_active %}active{% endif %}"></div>
+            </div>
+            <div class="app-content">
+                <h3 class="app-name">{{ app.name }}</h3>
+                <div class="app-info">
+                    <div class="info-row">
+                        <span class="label">应用ID：</span>
+                        <span class="value">{{ app.id }}</span>
                     </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <div class="info-row">
+                        <span class="label">Client ID：</span>
+                        <span class="value">{{ app.client_id }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">回调地址：</span>
+                        <span class="value">{{ app.redirect_uri }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">创建时间：</span>
+                        <span class="value">{{ app.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="app-footer">
+                <button class="btn btn-sm btn-secondary" onclick="showAppDetails('{{ app.id }}')" title="查看详情">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteApp('{{ app.id }}', '{{ app.name }}')" title="删除">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 应用详情对话框 -->
+<div class="modal" id="appDetailsModal" style="display: none;">
+    <div class="modal-content">
+        <h3>应用详情</h3>
+        <div class="app-details">
+            <div class="details-row">
+                <span class="label">Client Secret：</span>
+                <span class="value" id="appClientSecret"></span>
+            </div>
+            <div class="details-row">
+                <span class="label">授权范围：</span>
+                <span class="value" id="appScopes"></span>
+            </div>
+            <div class="details-row">
+                <span class="label">最后更新：</span>
+                <span class="value" id="appLastUpdated"></span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeAppDetailsModal()">关闭</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-    // 更新当前时间的函数
-    function updateCurrentTime() {
-        const now = new Date();
-        document.getElementById('current-time').textContent = now.toLocaleString();
+function showAppDetails(appId) {
+    // 这里应该发送请求获取应用详细信息
+    document.getElementById('appDetailsModal').style.display = 'flex';
+}
+
+function closeAppDetailsModal() {
+    document.getElementById('appDetailsModal').style.display = 'none';
+}
+
+function deleteApp(appId, appName) {
+    if (confirm(`确定要删除应用"${appName}"吗？此操作不可撤销。`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/apps/${appId}/delete`;
+        document.body.appendChild(form);
+        form.submit();
     }
-    
-    // 页面加载时更新时间，并每秒更新一次
-    updateCurrentTime();
-    setInterval(updateCurrentTime, 1000);
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('appDetailsModal');
+    if (event.target == modal) {
+        closeAppDetailsModal();
+    }
+}
 </script>
 {% endblock %} 

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_required, current_user
-from app.models.user import db
+from app.models.user import db, User
 from app.models.application import ApplicationRequest, UserApplication
 
 user = Blueprint('user', __name__)
@@ -40,13 +40,13 @@ def profile():
         # 获取用户针对此应用的申请
         pending_request = ApplicationRequest.query.filter_by(
             user_id=current_user.id, 
-            app_id=app_id, 
+            application_id=app_id, 
             status='pending'
         ).first()
         
         rejected_request = ApplicationRequest.query.filter_by(
             user_id=current_user.id, 
-            app_id=app_id, 
+            application_id=app_id, 
             status='rejected'
         ).order_by(ApplicationRequest.created_at.desc()).first()
         
@@ -59,6 +59,32 @@ def profile():
         })
     
     return render_template('user/profile.html', available_apps=available_apps)
+
+@user.route('/profile/update', methods=['POST'])
+@login_required
+def profile_update():
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    
+    if email:
+        # 检查邮箱是否已被其他用户使用
+        existing_user = User.query.filter(User.id != current_user.id, User.email == email).first()
+        if existing_user:
+            flash('该邮箱已被使用')
+            return redirect(url_for('user.profile'))
+        current_user.email = email
+    
+    if phone:
+        # 检查手机号是否已被其他用户使用
+        existing_user = User.query.filter(User.id != current_user.id, User.phone == phone).first()
+        if existing_user:
+            flash('该手机号已被使用')
+            return redirect(url_for('user.profile'))
+        current_user.phone = phone
+    
+    db.session.commit()
+    flash('个人资料更新成功')
+    return redirect(url_for('user.profile'))
 
 @user.route('/request_app_access', methods=['POST'])
 @login_required
@@ -80,7 +106,7 @@ def request_app_access():
     # 检查是否已有待处理的申请
     existing_request = ApplicationRequest.query.filter_by(
         user_id=current_user.id,
-        app_id=app_id,
+        application_id=app_id,
         status='pending'
     ).first()
     
@@ -91,7 +117,7 @@ def request_app_access():
     # 创建新的申请
     app_request = ApplicationRequest(
         user_id=current_user.id,
-        app_id=app_id,
+        application_id=app_id,
         reason=reason
     )
     

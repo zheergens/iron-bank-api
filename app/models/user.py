@@ -1,9 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from flask_login import UserMixin
-
-db = SQLAlchemy()
+from app.models import db
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -11,6 +9,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
     email = db.Column(db.String(120), unique=True, index=True)
+    phone = db.Column(db.String(11), unique=True, index=True, nullable=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -32,8 +31,8 @@ class User(UserMixin, db.Model):
         db.session.commit()
     
     @classmethod
-    def create_user(cls, username, email, password, role='user'):
-        user = cls(username=username, email=email, role=role)
+    def create_user(cls, username, email, password, phone=None, role='user'):
+        user = cls(username=username, email=email, phone=phone, role=role)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -42,6 +41,10 @@ class User(UserMixin, db.Model):
     @classmethod
     def find_by_username(cls, username):
         return cls.query.filter_by(username=username).first()
+    
+    @classmethod
+    def find_by_phone(cls, phone):
+        return cls.query.filter_by(phone=phone).first()
     
     @classmethod
     def find_by_id(cls, user_id):

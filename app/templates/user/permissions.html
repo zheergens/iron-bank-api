@@ -1,0 +1,123 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}权限申请 - 登录系统{% endblock %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css', v='1.0.0') }}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="profile-container">
+    <div class="card">
+        <div class="card-header">
+            <h2>平台权限申请</h2>
+            <p class="text-gray">您可以在此申请访问各个平台的权限</p>
+        </div>
+        <div class="card-body">
+            <table class="permissions-table">
+                <thead>
+                    <tr>
+                        <th>平台名称</th>
+                        <th>描述</th>
+                        <th>状态</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in available_apps %}
+                    <tr>
+                        <td>{{ app.name }}</td>
+                        <td>{{ app.description }}</td>
+                        <td>
+                            {% if app.has_access %}
+                                <span class="status-badge status-active">已授权</span>
+                            {% elif app.pending_request %}
+                                <span class="status-badge status-pending">申请中</span>
+                            {% elif app.rejected_request %}
+                                <span class="status-badge status-rejected">已拒绝</span>
+                            {% else %}
+                                <span class="status-badge status-inactive">未授权</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if app.has_access %}
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-check"></i>
+                                    已授权
+                                </button>
+                            {% elif app.pending_request %}
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-clock"></i>
+                                    审核中
+                                </button>
+                            {% elif app.rejected_request %}
+                                <button class="btn btn-primary btn-sm" onclick="showRequestForm('{{ app.id }}', '{{ app.name }}')">
+                                    <i class="fas fa-redo"></i>
+                                    重新申请
+                                </button>
+                            {% else %}
+                                <button class="btn btn-primary btn-sm" onclick="showRequestForm('{{ app.id }}', '{{ app.name }}')">
+                                    <i class="fas fa-key"></i>
+                                    申请权限
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 申请表单对话框 -->
+<div id="request-dialog" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeRequestForm()">&times;</span>
+        <h2>申请平台访问权限</h2>
+        <form id="request-form" method="post" action="{{ url_for('user.request_app_access') }}">
+            <input type="hidden" id="app_id" name="app_id" value="">
+            <div class="form-row">
+                <label class="form-label">申请平台</label>
+                <div class="form-input-wrapper">
+                    <input type="text" class="form-input" id="app_name" readonly>
+                </div>
+            </div>
+            <div class="form-row">
+                <label class="form-label">申请原因</label>
+                <div class="form-input-wrapper" style="max-width: 100%;">
+                    <textarea class="form-input" name="reason" rows="4" style="height: auto; min-height: 100px;" placeholder="请详细说明申请原因..." required></textarea>
+                </div>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" onclick="closeRequestForm()">取消</button>
+                <button type="submit" class="btn btn-primary">提交申请</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function showRequestForm(appId, appName) {
+    document.getElementById('app_id').value = appId;
+    document.getElementById('app_name').value = appName;
+    document.getElementById('request-dialog').style.display = 'flex';
+}
+
+function closeRequestForm() {
+    document.getElementById('request-dialog').style.display = 'none';
+}
+
+// 关闭模态框当点击外部区域
+window.onclick = function(event) {
+    const requestDialog = document.getElementById('request-dialog');
+    if (event.target == requestDialog) {
+        requestDialog.style.display = 'none';
+    }
+}
+</script>
+{% endblock %} 

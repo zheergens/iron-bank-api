@@ -1,213 +1,98 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
-{% block title %}应用权限申请审批 - 登录系统{% endblock %}
+{% block title %}平台授权 - 登录系统{% endblock %}
 
 {% block content %}
 <div class="header">
-    <h1>平台权限申请审批</h1>
+    <h1>平台授权</h1>
 </div>
 
 <div class="dashboard-card">
-    <h2>待审批的申请</h2>
-    
-    {% if pending_requests %}
+    <h2 class="dashboard-title">待处理申请</h2>
     <table>
         <thead>
             <tr>
-                <th>申请ID</th>
-                <th>用户</th>
-                <th>申请平台</th>
-                <th>申请原因</th>
                 <th>申请时间</th>
+                <th>用户</th>
+                <th>平台</th>
+                <th>申请原因</th>
                 <th>操作</th>
             </tr>
         </thead>
         <tbody>
             {% for request in pending_requests %}
             <tr>
-                <td>{{ request.id }}</td>
-                <td>{{ request.user.username }}</td>
-                <td>{{ request.app_name }}</td>
-                <td>{{ request.reason }}</td>
                 <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ request.user.username }}</td>
+                <td>{{ request.app.name }}</td>
+                <td>{{ request.reason }}</td>
                 <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" onclick="showApproveForm('{{ request.id }}')">批准</button>
-                        <button class="btn btn-danger" onclick="showRejectForm('{{ request.id }}')">拒绝</button>
-                    </div>
+                    <button class="btn btn-primary" onclick="approveRequest('{{ request.id }}')">批准</button>
+                    <button class="btn btn-danger" onclick="rejectRequest('{{ request.id }}')">拒绝</button>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
-    <div class="no-data">
-        <p>目前没有待审批的申请</p>
-    </div>
-    {% endif %}
 </div>
 
 <div class="dashboard-card">
-    <h2>历史审批记录</h2>
-    
-    {% if history_requests %}
+    <h2 class="dashboard-title">历史记录</h2>
     <table>
         <thead>
             <tr>
-                <th>申请ID</th>
+                <th>处理时间</th>
                 <th>用户</th>
-                <th>申请平台</th>
+                <th>平台</th>
                 <th>状态</th>
-                <th>审批人</th>
-                <th>审批时间</th>
-                <th>审批意见</th>
+                <th>处理人</th>
+                <th>备注</th>
             </tr>
         </thead>
         <tbody>
-            {% for request in history_requests %}
+            {% for record in history_records %}
             <tr>
-                <td>{{ request.id }}</td>
-                <td>{{ request.user.username }}</td>
-                <td>{{ request.app_name }}</td>
+                <td>{{ record.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ record.user.username }}</td>
+                <td>{{ record.app.name }}</td>
                 <td>
-                    {% if request.status == 'approved' %}
-                    <span class="status-badge status-active">已批准</span>
-                    {% else %}
-                    <span class="status-badge status-rejected">已拒绝</span>
-                    {% endif %}
+                    <span class="status-badge {% if record.status == 'approved' %}status-active{% elif record.status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
+                        {{ {"approved": "已批准", "rejected": "已拒绝", "pending": "待处理"}[record.status] }}
+                    </span>
                 </td>
-                <td>{{ request.approver.username }}</td>
-                <td>{{ request.approved_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td>{{ request.comment or '无' }}</td>
+                <td>{{ record.handler.username if record.handler else "-" }}</td>
+                <td>{{ record.comment or "-" }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
-    <div class="no-data">
-        <p>暂无历史审批记录</p>
-    </div>
-    {% endif %}
 </div>
-
-<!-- 批准申请对话框 -->
-<div id="approve-dialog" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeApproveForm()">&times;</span>
-        <h2>批准申请</h2>
-        <form id="approve-form" method="post" action="{{ url_for('admin.approve_request') }}">
-            <input type="hidden" id="approve_request_id" name="request_id" value="">
-            <p>确定要批准此申请吗？</p>
-            <div>
-                <label for="approve_comment">审批意见 (可选)</label>
-                <textarea id="approve_comment" name="comment" rows="3"></textarea>
-            </div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="closeApproveForm()">取消</button>
-                <button type="submit" class="btn btn-primary">确认批准</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- 拒绝申请对话框 -->
-<div id="reject-dialog" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeRejectForm()">&times;</span>
-        <h2>拒绝申请</h2>
-        <form id="reject-form" method="post" action="{{ url_for('admin.reject_request') }}">
-            <input type="hidden" id="reject_request_id" name="request_id" value="">
-            <p>确定要拒绝此申请吗？</p>
-            <div>
-                <label for="reject_comment">拒绝原因 (推荐填写)</label>
-                <textarea id="reject_comment" name="comment" rows="3"></textarea>
-            </div>
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="closeRejectForm()">取消</button>
-                <button type="submit" class="btn btn-danger">确认拒绝</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
-.no-data {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-    font-style: italic;
-}
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
-}
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px;
-    border-radius: 8px;
-}
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box;
-    margin-top: 10px;
-}
-.button-group {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 15px;
-}
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function showApproveForm(requestId) {
-        document.getElementById('approve_request_id').value = requestId;
-        document.getElementById('approve-dialog').style.display = 'block';
+function approveRequest(requestId) {
+    if (confirm('确定要批准此申请吗？')) {
+        window.location.href = "{{ url_for('admin.approve_request', request_id='') }}" + requestId;
     }
-    
-    function closeApproveForm() {
-        document.getElementById('approve-dialog').style.display = 'none';
+}
+
+function rejectRequest(requestId) {
+    const comment = prompt('请输入拒绝原因：');
+    if (comment !== null) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('admin.reject_request', request_id='') }}" + requestId;
+        
+        const commentInput = document.createElement('input');
+        commentInput.type = 'hidden';
+        commentInput.name = 'comment';
+        commentInput.value = comment;
+        
+        form.appendChild(commentInput);
+        document.body.appendChild(form);
+        form.submit();
     }
-    
-    function showRejectForm(requestId) {
-        document.getElementById('reject_request_id').value = requestId;
-        document.getElementById('reject-dialog').style.display = 'block';
-    }
-    
-    function closeRejectForm() {
-        document.getElementById('reject-dialog').style.display = 'none';
-    }
+}
 </script>
 {% endblock %} 

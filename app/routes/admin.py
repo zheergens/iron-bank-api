@@ -21,18 +21,40 @@ def admin_required(f):
 @login_required
 @admin_required
 def index():
-    registered_app_count = len(current_app.config['REGISTERED_APPS'])
-    pending_count = ApplicationRequest.query.filter_by(status='pending').count()
+    # 获取统计数据
+    total_users = User.query.count()
+    active_users_today = User.query.filter(
+        User.last_login >= datetime.datetime.now().replace(hour=0, minute=0, second=0)
+    ).count()
+    pending_requests = ApplicationRequest.query.filter_by(status='pending').count()
+    
+    # 计算系统运行时间（示例：从应用启动时开始计算）
+    if not hasattr(current_app, 'start_time'):
+        current_app.start_time = datetime.datetime.now()
+    uptime = datetime.datetime.now() - current_app.start_time
+    uptime_str = f"{uptime.days}天 {uptime.seconds//3600}小时"
+    
+    stats = {
+        'total_users': total_users,
+        'active_users_today': active_users_today,
+        'pending_requests': pending_requests,
+        'uptime': uptime_str
+    }
+    
+    # 获取最近活动（示例数据）
+    recent_activities = []
+    # TODO: 实现实际的活动记录逻辑
+    
     return render_template('admin/dashboard.html', 
-                           registered_app_count=registered_app_count, 
-                           pending_count=pending_count)
+                         stats=stats,
+                         recent_activities=recent_activities)
 
 @admin.route('/users')
 @login_required
 @admin_required
 def users():
-    users = User.get_all_users()
-    return render_template('admin/user_management.html', users=users)
+    users = User.query.all()
+    return render_template('admin/users.html', users=users)
 
 @admin.route('/users/new', methods=['GET', 'POST'])
 @login_required
@@ -41,19 +63,46 @@ def new_user():
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
+        phone = request.form.get('phone')
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
         role = request.form.get('role', 'user')
         
+        # 验证密码长度
+        if len(password) < 6:
+            flash('密码长度至少为6个字符')
+            return render_template('admin/users/new.html')
+        
+        # 验证两次密码是否一致
+        if password != confirm_password:
+            flash('两次输入的密码不一致')
+            return render_template('admin/users/new.html')
+        
+        # 检查用户名是否已存在
         existing_user = User.find_by_username(username)
         if existing_user:
             flash('用户名已存在')
-            return render_template('admin/new_user.html')
+            return render_template('admin/users/new.html')
         
-        User.create_user(username, email, password, role)
+        # 检查邮箱是否已存在
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('邮箱已被使用')
+            return render_template('admin/users/new.html')
+        
+        # 检查手机号是否已存在
+        if phone:
+            existing_phone = User.find_by_phone(phone)
+            if existing_phone:
+                flash('手机号已被使用')
+                return render_template('admin/users/new.html')
+        
+        # 创建新用户
+        User.create_user(username, email, password, phone, role)
         flash('用户创建成功')
         return redirect(url_for('admin.users'))
         
-    return render_template('admin/new_user.html')
+    return render_template('admin/users/new.html')
 
 @admin.route('/users/<user_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -107,21 +156,35 @@ def system_info():
     # 获取用户数量
     user_count = User.query.count()
     
+    # 获取系统信息
+    if not hasattr(current_app, 'start_time'):
+        current_app.start_time = datetime.datetime.now()
+    uptime = datetime.datetime.now() - current_app.start_time
+    uptime_str = f"{uptime.days}天 {uptime.seconds//3600}小时"
+    
+    system_info = {
+        'version': 'v1.0.0',  # 系统版本号
+        'uptime': uptime_str,  # 运行时间
+        'cpu_usage': random.randint(20, 80),  # CPU使用率（示例数据）
+        'memory_usage': random.randint(30, 90)  # 内存使用率（示例数据）
+    }
+    
     # 获取注册的应用
-    # 这里假设我们后续会创建一个Application模型
-    # 此处为示例，应用Program列表可能来自配置文件或数据库
-    applications = []
+    registered_apps = []
     for app_id, app_data in current_app.config['REGISTERED_APPS'].items():
-        applications.append({
+        registered_apps.append({
             'id': app_id,
             'name': app_data['name'],
             'client_id': app_data['client_id'],
             'redirect_uri': app_data['redirect_uri'],
             'is_active': True,
-            'created_at': datetime.datetime.now() - datetime.timedelta(days=len(applications))
+            'created_at': datetime.datetime.now() - datetime.timedelta(days=len(registered_apps))
         })
     
-    return render_template('admin/system_info.html', user_count=user_count, applications=applications)
+    return render_template('admin/system_info.html', 
+                         user_count=user_count,
+                         system_info=system_info,
+                         registered_apps=registered_apps)
 
 @admin.route('/apps/<app_id>/users')
 @login_required

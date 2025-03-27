@@ -1,83 +1,100 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
-{% block title %}用户中心 - 登录系统{% endblock %}
+{% block title %}控制台首页 - 登录系统{% endblock %}
 
-{% block content %}
-<div class="header">
-    <h1 class="welcome-title">欢迎使用用户中心</h1>
+{% block admin_content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">系统概览</h2>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_users }}</div>
+                <div class="stat-label">总用户数</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.active_users_today }}</div>
+                <div class="stat-label">今日活跃用户</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.uptime }}</div>
+                <div class="stat-label">系统运行时间</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.pending_requests }}</div>
+                <div class="stat-label">待处理请求</div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- 功能区块网格布局 -->
-<div class="feature-grid">
-    <!-- 用户管理卡片 -->
-    <div class="dashboard-card">
-        <div class="feature-icon">👥</div>
-        <h2 class="dashboard-title">用户管理</h2>
-        <p>管理系统用户，包括创建、编辑和删除用户账户。控制用户权限和角色分配。</p>
-        <a href="{{ url_for('admin.users') }}" class="btn btn-primary">查看所有用户</a>
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">最近活动</h2>
     </div>
-    
-    <!-- 个人中心卡片 -->
-    <div class="dashboard-card">
-        <div class="feature-icon">👤</div>
-        <h2 class="dashboard-title">个人中心</h2>
-        <p>查看和管理您的个人账户信息，包括用户名、邮箱和登录记录，以及修改您的密码。</p>
-        <a href="{{ url_for('user.profile') }}" class="btn btn-primary">访问个人中心</a>
-    </div>
-    
-    <!-- 系统信息卡片 -->
-    <div class="dashboard-card">
-        <div class="feature-icon">🔧</div>
-        <h2 class="dashboard-title">系统信息</h2>
-        <p>查看系统基本信息和管理已注册的平台。当前有 {{ registered_app_count }} 个平台注册在本系统。</p>
-        <a href="{{ url_for('admin.system_info') }}" class="btn btn-primary">查看系统信息</a>
-    </div>
-    
-    <!-- 权限申请卡片 -->
-    <div class="dashboard-card">
-        <div class="feature-icon">🔐</div>
-        <h2 class="dashboard-title">平台授权</h2>
-        <p>管理用户对平台的访问权限申请，审批用户提交的平台访问请求。</p>
-        <a href="{{ url_for('admin.app_requests') }}" class="btn btn-primary">
-            处理申请
-            {% if pending_count > 0 %}
-            <span class="badge">{{ pending_count }}</span>
-            {% endif %}
-        </a>
+    <div class="activity-list">
+        {% if recent_activities %}
+            {% for activity in recent_activities %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="{{ activity.icon }}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">{{ activity.title }}</div>
+                    <div class="activity-time">{{ activity.time }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-info-circle"></i>
+                <p>暂无活动记录</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-
-<!-- 系统概览卡片 -->
-<div class="dashboard-card">
-    <h2 class="dashboard-title">系统概览</h2>
-    <p>欢迎使用单点登录系统用户中心。通过此控制台，您可以管理用户账户、查看系统信息和管理已注册的平台。</p>
-    <p>作为管理员，您可以：</p>
-    <ul>
-        <li>创建、编辑和删除用户</li>
-        <li>管理平台的注册信息</li>
-        <li>控制用户对不同平台的访问权限</li>
-        <li>查看系统基本信息和运行状态</li>
-    </ul>
-    <p>选择左侧菜单中的选项或上方卡片中的功能按钮开始使用。</p>
-</div>
-
-<style>
-    .welcome-title, h1:first-of-type {
-        font-size: 1.6rem !important;
-    }
-</style>
 {% endblock %}
 
 {% block extra_css %}
-.feature-grid {
+.dashboard-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
-.feature-icon {
-    font-size: 2.5rem;
-    margin-bottom: 15px;
-    color: #4CAF50;
+.stat-card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stat-title {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #1890ff;
 }
 {% endblock %} 

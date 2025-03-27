@@ -1,0 +1,86 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}添加新用户 - 管理系统{% endblock %}
+
+{% block admin_content %}
+<div class="content-card">
+    <div class="header">
+        <h1>添加新用户</h1>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回用户列表
+        </a>
+    </div>
+
+    <form method="POST" class="admin-form">
+        <div class="form-group">
+            <label class="form-label" for="username">用户名</label>
+            <input type="text" id="username" name="username" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="email">邮箱</label>
+            <input type="email" id="email" name="email" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="phone">手机号</label>
+            <input type="tel" id="phone" name="phone" class="form-input">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="password">密码</label>
+            <input type="password" id="password" name="password" class="form-input" required>
+            <div class="form-hint">密码长度至少为6个字符</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="confirm_password">确认密码</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="role">角色</label>
+            <select id="role" name="role" class="form-input">
+                <option value="user">普通用户</option>
+                <option value="admin">管理员</option>
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">创建用户</button>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('admin.users') }}'">取消</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-hint {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+</style>
+{% endblock %} 
