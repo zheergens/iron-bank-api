@@ -4,10 +4,12 @@ from app.config import Config
 from app.models.user import db, User
 from app.models.application import ApplicationRequest, UserApplication
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = '请先登录后再访问此页面。'
+csrf = CSRFProtect()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -23,8 +25,11 @@ def create_app(config_class=Config):
     # 初始化登录管理器
     login_manager.init_app(app)
     
+    # 初始化CSRF保护
+    csrf.init_app(app)
+    
     # 注册蓝图
-    from app.routes.auth import auth as auth_bp
+    from app.auth.views import auth as auth_bp
     from app.routes.admin import admin as admin_bp
     from app.routes.user import user as user_bp
     
@@ -40,5 +45,10 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         return User.find_by_id(int(user_id))
+    
+    # 添加 csrf_token 到所有模板中
+    @app.context_processor
+    def inject_csrf_token():
+        return dict(csrf_token=lambda: generate_csrf())
     
     return app 

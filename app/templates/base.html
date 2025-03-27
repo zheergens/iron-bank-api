@@ -19,7 +19,6 @@
             position: fixed;
             top: 16px;
             right: 24px;
-            cursor: pointer;
             z-index: 1000;
         }
 
@@ -29,6 +28,7 @@
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.8);
             transition: all 0.3s;
+            cursor: pointer;
         }
 
         .avatar-img:hover {
@@ -61,12 +61,6 @@
             align-items: center;
             gap: 8px;
             transition: all 0.3s;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-            font-size: inherit;
         }
 
         .dropdown-item:hover {
@@ -133,9 +127,12 @@
             <a href="{{ url_for('user.change_password') }}" class="dropdown-item">
                 <i class="fas fa-key"></i>修改密码
             </a>
-            <button onclick="handleLogout()" class="dropdown-item">
-                <i class="fas fa-sign-out-alt"></i>退出登录
-            </button>
+            <form action="{{ url_for('auth.logout') }}" method="post" style="margin: 0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="dropdown-item" style="width: 100%; border: none; background: none; font: inherit; text-align: left;">
+                    <i class="fas fa-sign-out-alt"></i>退出登录
+                </button>
+            </form>
         </div>
     </div>
     {% endif %}
@@ -161,25 +158,21 @@
     {% block scripts %}
     <script>
     // 添加头像点击下拉菜单功能
-    const userAvatar = document.querySelector('.user-avatar');
+    const avatarImg = document.querySelector('.avatar-img');
     const dropdownMenu = document.querySelector('.dropdown-menu');
 
-    if (userAvatar) {
-        userAvatar.addEventListener('click', function(e) {
-            e.stopPropagation();
+    if (avatarImg && dropdownMenu) {
+        // 点击头像显示/隐藏菜单
+        avatarImg.addEventListener('click', function(e) {
             dropdownMenu.classList.toggle('show');
         });
 
+        // 点击其他区域关闭菜单
         document.addEventListener('click', function(e) {
-            if (!userAvatar.contains(e.target)) {
+            if (e.target !== avatarImg && !dropdownMenu.contains(e.target)) {
                 dropdownMenu.classList.remove('show');
             }
         });
-    }
-
-    // 处理退出登录
-    function handleLogout() {
-        window.location.href = "{{ url_for('auth.logout') }}";
     }
 
     // 自动隐藏Flash消息
