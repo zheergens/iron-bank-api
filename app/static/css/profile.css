@@ -1,16 +1,37 @@
-/* 个人中心容器 */
+/* 重置 admin-content 的 padding */
+.admin-layout .admin-content {
+    padding: 64px 0 0 0 !important;
+    margin-left: 240px;
+    transition: margin-left 0.3s;
+}
+
+.admin-layout .admin-content.expanded {
+    margin-left: 80px;
+}
+
+/* 个人中心布局 */
 .profile-container {
-    max-width: 1000px;
+    padding: 0;
+    background: #f3f4f6;
+    min-height: calc(100vh - 64px);
+}
+
+.profile-content {
+    padding: 16px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 24px;
 }
 
 /* 个人信息头部 */
 .profile-header {
     display: flex;
     align-items: center;
-    gap: 20px;
-    margin-bottom: 32px;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .profile-avatar {

@@ -30,6 +30,29 @@ class User(UserMixin, db.Model):
         self.last_login = datetime.datetime.utcnow()
         db.session.commit()
     
+    def update_profile(self, phone=None):
+        """更新用户资料
+        
+        Args:
+            phone: 新的手机号码，如果为 None 则不更新
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            if phone is not None:
+                # 检查手机号是否已被其他用户使用
+                existing_user = User.query.filter(User.id != self.id, User.phone == phone).first()
+                if existing_user:
+                    return False, '该手机号已被其他用户使用'
+                self.phone = phone
+            
+            db.session.commit()
+            return True, '个人资料更新成功'
+        except Exception as e:
+            db.session.rollback()
+            return False, '更新失败，请稍后重试'
+    
     @classmethod
     def create_user(cls, username, email, password, phone=None, role='user'):
         user = cls(username=username, email=email, phone=phone, role=role)
