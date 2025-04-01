@@ -1,6 +1,6 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}应用权限审核 - 管理系统{% endblock %}
+{% block title %}权限审核{% endblock %}
 
 {% block head_css %}
 {{ super() }}
@@ -14,240 +14,446 @@
 }
 
 .status-pending {
-    background-color: #faad14;
-    color: #fff;
+    background-color: #fff7e6;
+    color: #fa8c16;
+    border: 1px solid #ffd591;
 }
 
 .status-approved {
-    background-color: #52c41a;
-    color: #fff;
+    background-color: #f6ffed;
+    color: #52c41a;
+    border: 1px solid #b7eb8f;
 }
 
 .status-rejected {
-    background-color: #ff4d4f;
-    color: #fff;
+    background-color: #fff1f0;
+    color: #f5222d;
+    border: 1px solid #ffa39e;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 40px 0;
-    color: #999;
-}
-
-.empty-state i {
-    font-size: 48px;
-    margin-bottom: 16px;
-}
-
-.empty-state p {
-    margin: 0;
-    font-size: 16px;
-}
-
-.btn-action {
-    padding: 4px 12px;
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 15px;
+    font-size: 14px;
     border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+    gap: 4px;
+    height: 32px;
 }
 
-.btn-approve {
-    background-color: #1890ff;
-    border-color: #1890ff;
+.btn-primary {
+    background: #1890ff;
     color: white;
+    border-color: #1890ff;
 }
 
-.btn-approve:hover {
-    background-color: #40a9ff;
+.btn-primary:hover {
+    background: #40a9ff;
     border-color: #40a9ff;
 }
 
-.btn-reject {
-    background-color: #ff4d4f;
-    border-color: #ff4d4f;
+.btn-danger {
+    background: #ff4d4f;
     color: white;
-    margin-left: 8px;
+    border-color: #ff4d4f;
 }
 
-.btn-reject:hover {
-    background-color: #ff7875;
+.btn-danger:hover {
+    background: #ff7875;
     border-color: #ff7875;
 }
 
-.swal2-popup {
-    font-size: 14px !important;
+/* 模态框样式 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 1000;
+    animation: fadeIn 0.15s ease;
+    backdrop-filter: blur(1px);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 16px;
+    border-radius: 4px;
+    box-shadow: 0 3px 6px -4px rgba(0,0,0,0.12), 0 6px 16px 0 rgba(0,0,0,0.08);
+    z-index: 1001;
+    width: 280px;
+    animation: slideIn 0.15s ease;
+}
+
+.modal-header {
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.modal-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #262626;
+    margin: 0;
+}
+
+.modal-body {
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #595959;
+    line-height: 1.4;
+}
+
+.modal-body p {
+    margin: 0;
+}
+
+.modal-body strong {
+    color: #262626;
+    font-weight: 500;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.form-group {
+    margin: 12px 0 0 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    color: #262626;
+    font-size: 13px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 2px;
+    transition: all 0.2s;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 50px;
+}
+
+.form-control:focus {
+    border-color: #40a9ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.form-control::placeholder {
+    color: #bfbfbf;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    height: 28px;
+    min-width: 52px;
+    font-weight: normal;
+}
+
+.btn-default {
+    background: white;
+    border-color: #d9d9d9;
+    color: rgba(0, 0, 0, 0.65);
+}
+
+.btn-default:hover {
+    color: #40a9ff;
+    border-color: #40a9ff;
+}
+
+.btn-primary {
+    background: #1890ff;
+    color: white;
+    border-color: #1890ff;
+}
+
+.btn-primary:hover {
+    background: #40a9ff;
+    border-color: #40a9ff;
+}
+
+.btn-danger {
+    background: #ff4d4f;
+    color: white;
+    border-color: #ff4d4f;
+}
+
+.btn-danger:hover {
+    background: #ff7875;
+    border-color: #ff7875;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -55%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin: 24px;
+    padding: 24px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.table th {
+    background: #fafafa;
+    font-weight: 500;
+    color: #333;
+}
+
+.table tr:hover {
+    background: #fafafa;
+}
+
+.operation-btns {
+    display: flex;
+    gap: 8px;
 }
 </style>
 {% endblock %}
 
 {% block admin_content %}
-<div class="admin-card">
-    <div class="admin-card-header">
-        <h2 class="admin-card-title">待处理申请</h2>
+<div class="table-container">
+    <h2>待处理申请</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>申请时间</th>
+                <th>用户</th>
+                <th>应用</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in requests %}
+            <tr>
+                <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ request.user.username }}</td>
+                <td>{{ request.application.name }}</td>
+                <td>
+                    <span class="status-badge status-{{ request.status }}">
+                        {{ {'pending': '待处理', 'approved': '已批准', 'rejected': '已拒绝'}[request.status] }}
+                    </span>
+                </td>
+                <td>
+                    {% if request.status == 'pending' %}
+                    <div class="operation-btns">
+                        <button class="btn btn-primary" onclick="showApproveModal('{{ request.id }}', '{{ request.user.username }}', '{{ request.application.name }}')">
+                            批准
+                        </button>
+                        <button class="btn btn-danger" onclick="showRejectModal('{{ request.id }}', '{{ request.user.username }}', '{{ request.application.name }}')">
+                            拒绝
+                        </button>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 批准确认模态框 -->
+<div id="approveModal" class="modal">
+    <div class="modal-header">
+        <h3 class="modal-title">批准权限申请</h3>
     </div>
-    <div class="admin-card-body">
-        {% if requests %}
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>申请时间</th>
-                    <th>用户</th>
-                    <th>应用</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for request in requests %}
-                <tr>
-                    <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>{{ request.user.username if request.user else '未知用户' }}</td>
-                    <td>{{ request.application.name if request.application else '未知应用' }}</td>
-                    <td>
-                        <span class="status-badge status-{{ request.status }}">
-                            {{ {'pending': '待处理', 'approved': '已批准', 'rejected': '已拒绝'}[request.status] }}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-action btn-approve" onclick="approveRequest('{{ request.id }}', '{{ request.user.username if request.user else '未知用户' }}', '{{ request.application.name if request.application else '未知应用' }}')">
-                            <i class="fas fa-check"></i> 批准
-                        </button>
-                        <button class="btn btn-action btn-reject" onclick="rejectRequest('{{ request.id }}', '{{ request.user.username if request.user else '未知用户' }}', '{{ request.application.name if request.application else '未知应用' }}')">
-                            <i class="fas fa-times"></i> 拒绝
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <p>暂无待处理的申请</p>
-        </div>
-        {% endif %}
+    <div class="modal-body">
+        <p>批准 <strong id="approveUsername"></strong> 访问 <strong id="approveAppName"></strong></p>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-default" onclick="hideModal('approveModal')">取消</button>
+        <button class="btn btn-primary" id="confirmApproveBtn">确定</button>
     </div>
 </div>
+
+<!-- 拒绝确认模态框 -->
+<div id="rejectModal" class="modal">
+    <div class="modal-header">
+        <h3 class="modal-title">拒绝权限申请</h3>
+    </div>
+    <div class="modal-body">
+        <p><strong id="rejectUsername"></strong> 访问 <strong id="rejectAppName"></strong></p>
+        <div class="form-group">
+            <label for="rejectReason">拒绝原因</label>
+            <textarea id="rejectReason" class="form-control" rows="2" placeholder="请输入拒绝原因..." required></textarea>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-default" onclick="hideModal('rejectModal')">取消</button>
+        <button class="btn btn-danger" id="confirmRejectBtn">拒绝</button>
+    </div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay"></div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-function approveRequest(requestId, username, appName) {
-    Swal.fire({
-        title: '批准申请',
-        html: `确定要批准 <strong>${username}</strong> 访问 <strong>${appName}</strong> 的申请吗？`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: '确定批准',
-        cancelButtonText: '取消',
-        confirmButtonColor: '#1890ff',
-        cancelButtonColor: '#8c8c8c',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin/requests/${requestId}/approve`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: '已批准',
-                        text: '申请已成功批准',
-                        icon: 'success',
-                        confirmButtonColor: '#1890ff'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        title: '操作失败',
-                        text: data.message || '批准申请时发生错误',
-                        icon: 'error',
-                        confirmButtonColor: '#ff4d4f'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: '操作失败',
-                    text: '批准申请时发生错误，请重试',
-                    icon: 'error',
-                    confirmButtonColor: '#ff4d4f'
-                });
-            });
-        }
-    });
+let currentRequestId = null;
+const modalOverlay = document.getElementById('modalOverlay');
+const approveModal = document.getElementById('approveModal');
+const rejectModal = document.getElementById('rejectModal');
+
+function showModal(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+    modalOverlay.style.display = 'block';
 }
 
-function rejectRequest(requestId, username, appName) {
-    Swal.fire({
-        title: '拒绝申请',
-        html: `请输入拒绝 <strong>${username}</strong> 访问 <strong>${appName}</strong> 的原因：`,
-        input: 'textarea',
-        inputPlaceholder: '请输入拒绝原因...',
-        inputAttributes: {
-            'aria-label': '拒绝原因'
-        },
-        showCancelButton: true,
-        confirmButtonText: '确定拒绝',
-        cancelButtonText: '取消',
-        confirmButtonColor: '#ff4d4f',
-        cancelButtonColor: '#8c8c8c',
-        reverseButtons: true,
-        inputValidator: (value) => {
-            if (!value) {
-                return '请输入拒绝原因';
+function hideModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    modalOverlay.style.display = 'none';
+}
+
+function showApproveModal(requestId, username, appName) {
+    currentRequestId = requestId;
+    document.getElementById('approveUsername').textContent = username;
+    document.getElementById('approveAppName').textContent = appName;
+    showModal('approveModal');
+}
+
+function showRejectModal(requestId, username, appName) {
+    currentRequestId = requestId;
+    document.getElementById('rejectUsername').textContent = username;
+    document.getElementById('rejectAppName').textContent = appName;
+    document.getElementById('rejectReason').value = '';
+    showModal('rejectModal');
+}
+
+// 点击模态框外部关闭模态框
+modalOverlay.addEventListener('click', function() {
+    hideModal('approveModal');
+    hideModal('rejectModal');
+});
+
+// 批准申请
+document.getElementById('confirmApproveBtn').addEventListener('click', async function() {
+    try {
+        const response = await fetch(`/admin/requests/${currentRequestId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
             }
+        });
+        
+        if (response.ok) {
+            showMessage('success', '申请已批准');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            const data = await response.json();
+            showMessage('error', data.message || '操作失败');
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin/requests/${requestId}/reject`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ reason: result.value })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: '已拒绝',
-                        text: '申请已成功拒绝',
-                        icon: 'success',
-                        confirmButtonColor: '#1890ff'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        title: '操作失败',
-                        text: data.message || '拒绝申请时发生错误',
-                        icon: 'error',
-                        confirmButtonColor: '#ff4d4f'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: '操作失败',
-                    text: '拒绝申请时发生错误，请重试',
-                    icon: 'error',
-                    confirmButtonColor: '#ff4d4f'
-                });
-            });
+    } catch (error) {
+        showMessage('error', '网络错误，请重试');
+    } finally {
+        hideModal('approveModal');
+    }
+});
+
+// 拒绝申请
+document.getElementById('confirmRejectBtn').addEventListener('click', async function() {
+    const reason = document.getElementById('rejectReason').value.trim();
+    if (!reason) {
+        showMessage('error', '请输入拒绝原因');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/requests/${currentRequestId}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ reason })
+        });
+        
+        if (response.ok) {
+            showMessage('success', '申请已拒绝');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            const data = await response.json();
+            showMessage('error', data.message || '操作失败');
         }
-    });
+    } catch (error) {
+        showMessage('error', '网络错误，请重试');
+    } finally {
+        hideModal('rejectModal');
+    }
+});
+
+function showMessage(type, message) {
+    const flashMessages = document.querySelector('.flash-messages');
+    if (!flashMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flash-message ${type}`;
+    messageDiv.innerHTML = `
+        <span class="icon icon-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></span>
+        ${message}
+    `;
+    
+    flashMessages.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.animation = 'slideOut 0.3s ease-in forwards';
+        setTimeout(() => messageDiv.remove(), 300);
+    }, 3000);
 }
 </script>
 {% endblock %} 
