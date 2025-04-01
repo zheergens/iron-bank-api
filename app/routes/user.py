@@ -1,160 +1,132 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_required, current_user
-from app.models.user import db, User
-from app.models.application import ApplicationRequest, UserApplication
+from app.models.user import User
+from app.models.application import ApplicationRequest, UserApplication, Application
+from werkzeug.security import check_password_hash
+import datetime
 
 user = Blueprint('user', __name__)
 
 @user.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
+    """修改密码页面"""
     if request.method == 'POST':
         old_password = request.form.get('old_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
         
+        # 验证旧密码
         if not current_user.check_password(old_password):
-            flash('当前密码错误', 'error')
-            return redirect(url_for('user.change_password'))
+            flash('旧密码不正确')
+            return render_template('user/change_password.html')
         
+        # 验证新密码和确认密码是否一致
         if new_password != confirm_password:
-            flash('新密码两次输入不一致', 'error')
-            return redirect(url_for('user.change_password'))
+            flash('新密码和确认密码不一致')
+            return render_template('user/change_password.html')
         
+        # 验证新密码是否符合要求（例如：长度、复杂度等）
+        if len(new_password) < 6:
+            flash('新密码长度不能少于6位')
+            return render_template('user/change_password.html')
+        
+        # 更新密码
         current_user.set_password(new_password)
-        db.session.commit()
-        flash('密码修改成功', 'success')
-        return redirect(url_for('user.change_password'))
+        current_user.updated_at = datetime.datetime.utcnow().replace(tzinfo=None)
+        current_user.save()
+        
+        flash('密码修改成功')
+        return redirect(url_for('index'))
     
     return render_template('user/change_password.html')
 
 @user.route('/profile')
 @login_required
 def profile():
-    # 获取所有可用的应用
-    available_apps = []
-    for app_id, app_data in current_app.config['REGISTERED_APPS'].items():
-        # 检查用户是否已经有权限访问此应用
-        has_access = UserApplication.user_has_access(current_user.id, app_id)
-        
-        # 获取用户针对此应用的申请
-        pending_request = ApplicationRequest.query.filter_by(
-            user_id=current_user.id, 
-            app_id=app_id, 
-            status='pending'
-        ).first()
-        
-        rejected_request = ApplicationRequest.query.filter_by(
-            user_id=current_user.id, 
-            app_id=app_id, 
-            status='rejected'
-        ).order_by(ApplicationRequest.created_at.desc()).first()
-        
-        available_apps.append({
-            'id': app_id,
-            'name': app_data['name'],
-            'has_access': has_access,
-            'pending_request': pending_request is not None,
-            'rejected_request': rejected_request is not None
-        })
+    """用户个人资料页面"""
+    # 获取用户可访问的应用列表
+    user_apps = UserApplication.collection().find({'user_id': current_user.id})
+    app_ids = [user_app['app_id'] for user_app in user_apps]
     
-    return render_template('user/profile.html', available_apps=available_apps)
+    # 获取应用详情
+    applications = []
+    for app_id in app_ids:
+        app = Application.find_by_id(app_id)
+        if app:
+            applications.append(app)
+    
+    return render_template('user/profile.html', user=current_user, applications=applications)
 
 @user.route('/update_profile', methods=['GET', 'POST'])
 @login_required
 def update_profile():
-    if request.method == 'GET':
-        return render_template('user/edit_profile.html')
-    
-    # POST 请求逻辑
+    """更新用户个人资料"""
     phone = request.form.get('phone')
-    old_password = request.form.get('old_password')
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
     
-    # 如果任何一个密码字段被填写，则需要验证所有密码字段
-    if old_password or new_password or confirm_password:
-        # 确保所有密码字段都已填写
-        if not all([old_password, new_password, confirm_password]):
-            flash('如果要修改密码，请填写所有密码字段', 'error')
-            return redirect(url_for('user.update_profile'))
-        
-        # 验证当前密码
-        if not current_user.check_password(old_password):
-            flash('当前密码错误', 'error')
-            return redirect(url_for('user.update_profile'))
-        
-        # 验证新密码
-        if new_password != confirm_password:
-            flash('新密码两次输入不一致', 'error')
-            return redirect(url_for('user.update_profile'))
-        
-        # 验证新密码长度
-        if len(new_password) < 6:
-            flash('新密码长度至少为6个字符', 'error')
-            return redirect(url_for('user.update_profile'))
-            
-        # 验证新密码与旧密码不同
-        if old_password == new_password:
-            flash('新密码不能与当前密码相同', 'error')
-            return redirect(url_for('user.update_profile'))
-        
-        try:
-            current_user.set_password(new_password)
-            db.session.commit()
-            flash('密码修改成功', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash('密码修改失败，请稍后重试', 'error')
-            return redirect(url_for('user.update_profile'))
-    
-    # 处理手机号更新
+    # 更新手机号
     if phone:
-        success, message = current_user.update_profile(phone=phone)
-        if not success:
-            flash(message, 'error')
-            return redirect(url_for('user.update_profile'))
-        flash('手机号更新成功', 'success')
+        # 验证手机号是否已经被其他用户使用
+        existing_user = User.find_by_phone(phone)
+        if existing_user and existing_user.id != current_user.id:
+            flash('该手机号已被其他用户使用')
+            return redirect(url_for('user.profile'))
+        
+        current_user.phone = phone
     
-    return redirect(url_for('user.update_profile'))
+    # 更新密码
+    if new_password:
+        # 验证新密码和确认密码是否一致
+        if new_password != confirm_password:
+            flash('新密码和确认密码不一致')
+            return redirect(url_for('user.profile'))
+        
+        # 验证新密码是否符合要求（例如：长度、复杂度等）
+        if len(new_password) < 6:
+            flash('新密码长度不能少于6位')
+            return redirect(url_for('user.profile'))
+        
+        current_user.set_password(new_password)
+    
+    # 更新资料
+    current_user.updated_at = datetime.datetime.utcnow().replace(tzinfo=None)
+    current_user.save()
+    
+    flash('个人资料更新成功')
+    return redirect(url_for('user.profile'))
 
-@user.route('/request_app_access', methods=['POST'])
+@user.route('/request_app/<app_id>', methods=['POST'])
 @login_required
-def request_app_access():
-    app_id = request.form.get('app_id')
-    reason = request.form.get('reason')
-    
-    # 验证应用ID是否有效
-    app_config = current_app.config['REGISTERED_APPS'].get(app_id)
-    if not app_config:
-        flash('无效的应用ID')
+def request_app(app_id):
+    """申请应用访问权限"""
+    # 检查用户是否已经有权限
+    existing_access = UserApplication.find_by_user_and_app(current_user.id, app_id)
+    if existing_access:
+        flash('您已经有权限访问此应用')
         return redirect(url_for('user.profile'))
-    
-    # 检查用户是否已经有权限访问此应用
-    if UserApplication.user_has_access(current_user.id, app_id):
-        flash('您已经拥有此应用的访问权限')
+        
+    # 检查是否有待处理的申请
+    existing_request = ApplicationRequest.find_by_user_and_app(current_user.id, app_id)
+    if existing_request and existing_request.status == 'pending':
+        flash('您已提交过申请，请等待管理员审批')
         return redirect(url_for('user.profile'))
-    
-    # 检查是否已有待处理的申请
-    existing_request = ApplicationRequest.query.filter_by(
-        user_id=current_user.id,
-        app_id=app_id,
-        status='pending'
-    ).first()
-    
-    if existing_request:
-        flash('您已经提交过此应用的访问权限申请，请等待审批')
+        
+    # 检查应用是否存在
+    app = Application.find_by_id(app_id)
+    if not app:
+        flash('应用不存在')
         return redirect(url_for('user.profile'))
-    
+        
     # 创建新的申请
     app_request = ApplicationRequest(
         user_id=current_user.id,
         app_id=app_id,
-        reason=reason
+        status='pending',
+        created_at=datetime.datetime.utcnow().replace(tzinfo=None)
     )
-    
-    db.session.add(app_request)
-    db.session.commit()
+    app_request.save()
     
     flash('申请已提交，请等待管理员审批')
     return redirect(url_for('user.profile'))
@@ -191,12 +163,7 @@ def update_password():
         flash('新密码不能与当前密码相同', 'error')
         return redirect(url_for('user.change_password'))
     
-    try:
-        current_user.set_password(new_password)
-        db.session.commit()
-        flash('密码修改成功', 'success')
-        return redirect(url_for('user.change_password'))
-    except Exception as e:
-        db.session.rollback()
-        flash('密码修改失败，请稍后重试', 'error')
-        return redirect(url_for('user.change_password')) 
+    current_user.set_password(new_password)
+    current_user.save()
+    flash('密码修改成功', 'success')
+    return redirect(url_for('user.change_password')) 

@@ -7,8 +7,8 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-should-be-changed'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///user_auth.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # MongoDB配置
+    MONGO_URI = os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/dsp'
     SESSION_COOKIE_NAME = 'sso_session'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SECURE = False  # 在生产环境中设置为True

@@ -26,16 +26,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ stats.uptime }}</div>
-                <div class="stat-label">系统运行时间</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-tasks"></i>
+                <i class="fas fa-bell"></i>
             </div>
             <div class="stat-content">
                 <div class="stat-value">{{ stats.pending_requests }}</div>
@@ -51,17 +42,24 @@
     </div>
     <div class="activity-list">
         {% if recent_activities %}
-            {% for activity in recent_activities %}
-            <div class="activity-item">
-                <div class="activity-icon">
-                    <i class="{{ activity.icon }}"></i>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-title">{{ activity.title }}</div>
-                    <div class="activity-time">{{ activity.time }}</div>
-                </div>
-            </div>
-            {% endfor %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>用户</th>
+                        <th>活动</th>
+                        <th>时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in recent_activities %}
+                    <tr>
+                        <td>{{ activity.username }}</td>
+                        <td>{{ activity.action }}</td>
+                        <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-info-circle"></i>

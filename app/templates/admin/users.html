@@ -32,23 +32,25 @@
                     <td>{{ user.email }}</td>
                     <td>{{ user.phone or '未设置' }}</td>
                     <td>
-                        <span class="badge badge-primary">{{ user.role }}</span>
+                        <span class="badge badge-primary">{{ user.permissions[0] if user.permissions else 'user' }}</span>
                     </td>
                     <td>
                         <span class="badge {% if user.is_active %}badge-primary{% else %}badge-default{% endif %}">
                             {{ '活跃' if user.is_active else '禁用' }}
                         </span>
                     </td>
-                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '未知' }}</td>
                     <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '从未登录' }}</td>
                     <td>
                         <div class="action-buttons">
                             <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-primary btn-small">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            {% if not user.is_admin %}
                             <button class="btn btn-danger btn-small" onclick="deleteUser('{{ user.id }}')">
-                                <i class="fas fa-trash"></i>
+                                <i class="fas fa-ban"></i>
                             </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -98,18 +100,88 @@ function closeDeleteModal() {
 
 function confirmDelete() {
     if (userIdToDelete) {
+        const formData = new FormData();
+        formData.append('csrf_token', '{{ csrf_token() }}');
+        
         fetch(`/admin/users/${userIdToDelete}/delete`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }).then(response => {
-            if (response.ok) {
-                location.reload();
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 设置成功消息到 localStorage
+                localStorage.setItem('flash_message', data.message || '用户已禁用');
+                localStorage.setItem('flash_type', 'success');
+                // 重定向到用户管理页面
+                window.location.href = "{{ url_for('admin.users') }}";
+            } else {
+                // 显示错误消息
+                showToast(data.message || '禁用失败', 'error');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('禁用失败，请重试', 'error');
         });
     }
     closeDeleteModal();
 }
+
+// 页面加载时检查是否有闪现消息
+document.addEventListener('DOMContentLoaded', function() {
+    const message = localStorage.getItem('flash_message');
+    const type = localStorage.getItem('flash_type');
+    if (message) {
+        showToast(message, type);
+        localStorage.removeItem('flash_message');
+        localStorage.removeItem('flash_type');
+    }
+});
+
+// 显示消息提示
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // 3秒后自动移除
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 </script>
+
+<style>
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 4px;
+    color: white;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-in-out;
+}
+
+.toast.success {
+    background-color: #4CAF50;
+}
+
+.toast.error {
+    background-color: #f44336;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+</style>
 {% endblock %} 

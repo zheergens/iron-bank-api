@@ -45,6 +45,13 @@ def create_app(config_class=Config):
     
     return app
 
+def init_db(app):
+    """初始化数据库"""
+    with app.app_context():
+        # 初始化所有模型
+        from app.models import init_models
+        init_models()
+
 def register_blueprints(app):
     """注册蓝图"""
     from app.auth.views import auth as auth_bp

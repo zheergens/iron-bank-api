@@ -1,80 +1,148 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}应用管理 - 管理系统{% endblock %}
+{% block title %}系统信息 - 管理系统{% endblock %}
 
 {% block admin_content %}
 <div class="content-card">
     <div class="header">
         <h1>已注册的应用</h1>
-        <button class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-            注册新应用
+        <button class="btn btn-primary" onclick="showNewAppModal()">
+            <i class="fas fa-plus"></i> 注册新应用
         </button>
     </div>
-    
-    <div class="app-grid">
-        {% for app in registered_apps %}
-        <div class="app-card">
-            <div class="app-header">
-                <div class="app-icon">
-                    <i class="fas fa-cube"></i>
-                </div>
-                <div class="app-status {% if app.is_active %}active{% endif %}"></div>
-            </div>
-            <div class="app-content">
-                <h3 class="app-name">{{ app.name }}</h3>
-                <div class="app-info">
-                    <div class="info-row">
-                        <span class="label">应用ID：</span>
-                        <span class="value">{{ app.id }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">Client ID：</span>
-                        <span class="value">{{ app.client_id }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">回调地址：</span>
-                        <span class="value">{{ app.redirect_uri }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">创建时间：</span>
-                        <span class="value">{{ app.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="app-footer">
-                <button class="btn btn-sm btn-secondary" onclick="showAppDetails('{{ app.id }}')" title="查看详情">
-                    <i class="fas fa-info-circle"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteApp('{{ app.id }}', '{{ app.name }}')" title="删除">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
+
+    <div class="table-container">
+        {% if apps %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>应用名称</th>
+                    <th>描述</th>
+                    <th>客户端ID</th>
+                    <th>重定向URI</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in apps %}
+                <tr>
+                    <td>{{ app.name }}</td>
+                    <td>{{ app.description }}</td>
+                    <td>
+                        <div class="copy-container">
+                            <span>{{ app.client_id }}</span>
+                            <button class="btn-icon" onclick="copyToClipboard('{{ app.client_id }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>{{ app.redirect_uri }}</td>
+                    <td>
+                        <span class="badge {% if app.is_active %}badge-primary{% else %}badge-default{% endif %}">
+                            {{ '活跃' if app.is_active else '禁用' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin.manage_app_users', app_id=app.id) }}" class="btn btn-primary btn-small">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{{ url_for('admin.edit_app', app_id=app.id) }}" class="btn btn-primary btn-small">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-danger btn-small" onclick="deleteApp('{{ app.id }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-info-circle"></i>
+            <p>暂无已注册的应用</p>
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 
-<!-- 应用详情对话框 -->
-<div class="modal" id="appDetailsModal" style="display: none;">
+<!-- 新应用模态框 -->
+<div id="newAppModal" class="modal" style="display: none;">
     <div class="modal-content">
-        <h3>应用详情</h3>
-        <div class="app-details">
-            <div class="details-row">
-                <span class="label">Client Secret：</span>
-                <span class="value" id="appClientSecret"></span>
+        <div class="modal-header">
+            <h3>注册新应用</h3>
+            <button class="btn-close" onclick="closeNewAppModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="newAppForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-group">
+                    <label for="name">应用名称 <span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">应用描述</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="redirect_uri">重定向URI <span class="required">*</span></label>
+                    <input type="text" id="redirect_uri" name="redirect_uri" required>
+                    <div class="form-hint">授权成功后的回调地址，例如：http://localhost:8080/oauth/callback</div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNewAppModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitNewApp()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 应用创建成功模态框 -->
+<div id="appCreatedModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>应用创建成功</h3>
+            <button class="btn-close" onclick="closeAppCreatedModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-success">
+                <p>应用已成功创建！请保存以下信息，客户端密钥只会显示一次。</p>
             </div>
-            <div class="details-row">
-                <span class="label">授权范围：</span>
-                <span class="value" id="appScopes"></span>
+            
+            <div class="info-group">
+                <label>应用名称:</label>
+                <div class="info-value" id="createdAppName"></div>
             </div>
-            <div class="details-row">
-                <span class="label">最后更新：</span>
-                <span class="value" id="appLastUpdated"></span>
+            
+            <div class="info-group">
+                <label>客户端ID:</label>
+                <div class="copy-container">
+                    <span id="createdClientId"></span>
+                    <button class="btn-icon" onclick="copyToClipboard(document.getElementById('createdClientId').innerText)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="info-group">
+                <label>客户端密钥:</label>
+                <div class="copy-container">
+                    <span id="createdClientSecret"></span>
+                    <button class="btn-icon" onclick="copyToClipboard(document.getElementById('createdClientSecret').innerText)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="closeAppDetailsModal()">关闭</button>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeAppCreatedModal()">确定</button>
         </div>
     </div>
 </div>
@@ -83,31 +151,134 @@
 {% block scripts %}
 {{ super() }}
 <script>
-function showAppDetails(appId) {
-    // 这里应该发送请求获取应用详细信息
-    document.getElementById('appDetailsModal').style.display = 'flex';
+function showNewAppModal() {
+    document.getElementById('newAppModal').style.display = 'block';
 }
 
-function closeAppDetailsModal() {
-    document.getElementById('appDetailsModal').style.display = 'none';
+function closeNewAppModal() {
+    document.getElementById('newAppModal').style.display = 'none';
+    document.getElementById('newAppForm').reset();
 }
 
-function deleteApp(appId, appName) {
-    if (confirm(`确定要删除应用"${appName}"吗？此操作不可撤销。`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/admin/apps/${appId}/delete`;
-        document.body.appendChild(form);
-        form.submit();
+function closeAppCreatedModal() {
+    document.getElementById('appCreatedModal').style.display = 'none';
+    location.reload();  // 刷新页面以显示新创建的应用
+}
+
+function submitNewApp() {
+    const form = document.getElementById('newAppForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("admin.new_app") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 显示成功信息
+            document.getElementById('createdAppName').innerText = data.app.name;
+            document.getElementById('createdClientId').innerText = data.app.client_id;
+            document.getElementById('createdClientSecret').innerText = data.app.client_secret;
+            
+            closeNewAppModal();
+            document.getElementById('appCreatedModal').style.display = 'block';
+        } else {
+            // 显示错误信息
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('创建应用失败，请重试', 'error');
+    });
+}
+
+function deleteApp(appId) {
+    if (confirm('确定要删除此应用吗？此操作不可撤销。')) {
+        const formData = new FormData();
+        formData.append('csrf_token', '{{ csrf_token() }}');
+        
+        fetch(`/admin/apps/${appId}/delete`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                location.reload();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('删除应用失败，请重试', 'error');
+        });
     }
 }
 
-// 点击模态框外部关闭
-window.onclick = function(event) {
-    const modal = document.getElementById('appDetailsModal');
-    if (event.target == modal) {
-        closeAppDetailsModal();
-    }
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('已复制到剪贴板', 'success');
+    }, function() {
+        showToast('复制失败', 'error');
+    });
 }
 </script>
+
+<style>
+.copy-container {
+    display: flex;
+    align-items: center;
+}
+
+.copy-container span {
+    margin-right: 8px;
+    word-break: break-all;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+}
+
+.btn-icon:hover {
+    color: #333;
+}
+
+.info-group {
+    margin-bottom: 15px;
+}
+
+.info-group label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.required {
+    color: red;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+</style>
 {% endblock %} 
