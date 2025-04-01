@@ -40,13 +40,13 @@ def profile():
         # 获取用户针对此应用的申请
         pending_request = ApplicationRequest.query.filter_by(
             user_id=current_user.id, 
-            application_id=app_id, 
+            app_id=app_id, 
             status='pending'
         ).first()
         
         rejected_request = ApplicationRequest.query.filter_by(
             user_id=current_user.id, 
-            application_id=app_id, 
+            app_id=app_id, 
             status='rejected'
         ).order_by(ApplicationRequest.created_at.desc()).first()
         
@@ -128,28 +128,28 @@ def request_app_access():
     app_config = current_app.config['REGISTERED_APPS'].get(app_id)
     if not app_config:
         flash('无效的应用ID')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('user.profile'))
     
     # 检查用户是否已经有权限访问此应用
     if UserApplication.user_has_access(current_user.id, app_id):
         flash('您已经拥有此应用的访问权限')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('user.profile'))
     
     # 检查是否已有待处理的申请
     existing_request = ApplicationRequest.query.filter_by(
         user_id=current_user.id,
-        application_id=app_id,
+        app_id=app_id,
         status='pending'
     ).first()
     
     if existing_request:
         flash('您已经提交过此应用的访问权限申请，请等待审批')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('user.profile'))
     
     # 创建新的申请
     app_request = ApplicationRequest(
         user_id=current_user.id,
-        application_id=app_id,
+        app_id=app_id,
         reason=reason
     )
     
@@ -157,7 +157,7 @@ def request_app_access():
     db.session.commit()
     
     flash('申请已提交，请等待管理员审批')
-    return redirect(url_for('auth.profile'))
+    return redirect(url_for('user.profile'))
 
 @user.route('/update_password', methods=['POST'])
 @login_required

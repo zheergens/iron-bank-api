@@ -1,71 +1,97 @@
+from app.extensions import db
+from app.models import BaseModel
 from datetime import datetime
-from app.models import db
-from app.models.user import User
 
-class Application(db.Model):
+class Application(BaseModel):
+    """应用模型，表示系统中注册的外部应用"""
     __tablename__ = 'applications'
     
-    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    app_id = db.Column(db.String(50), unique=True, nullable=False)
     client_id = db.Column(db.String(100), unique=True, nullable=False)
     client_secret = db.Column(db.String(100), nullable=False)
-    redirect_uri = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    @staticmethod
-    def get_all_applications():
-        return Application.query.all()
-
-class ApplicationRequest(db.Model):
-    __tablename__ = 'application_requests'
+    redirect_uri = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    description = db.Column(db.Text, nullable=True)
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    application_id = db.Column(db.Integer, db.ForeignKey('applications.id'), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
-    reason = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # 与用户的关系
+    user_applications = db.relationship('UserApplication', back_populates='application', cascade='all, delete-orphan')
+    app_requests = db.relationship('ApplicationRequest', back_populates='app', cascade='all, delete-orphan')
     
-    # 关联
-    user = db.relationship('User', backref=db.backref('application_requests', lazy=True))
-    application = db.relationship('Application', backref=db.backref('requests', lazy=True))
+    @classmethod
+    def find_by_app_id(cls, app_id):
+        """通过app_id查找应用"""
+        return cls.query.filter_by(app_id=app_id).first()
+    
+    @classmethod
+    def find_by_client_id(cls, client_id):
+        """通过client_id查找应用"""
+        return cls.query.filter_by(client_id=client_id).first()
+    
+    @classmethod
+    def get_all_active(cls):
+        """获取所有活跃的应用"""
+        return cls.query.filter_by(is_active=True).all()
 
-class UserApplication(db.Model):
+class UserApplication(BaseModel):
+    """用户应用授权关系"""
     __tablename__ = 'user_applications'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    application_id = db.Column(db.Integer, db.ForeignKey('applications.id'), nullable=False)
-    access_token = db.Column(db.String(100))
-    refresh_token = db.Column(db.String(100))
-    expires_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_user_application_user'), nullable=False)
+    app_id = db.Column(db.String(50), db.ForeignKey('applications.app_id', name='fk_user_application_app'), nullable=False)
+    access_token = db.Column(db.String(255), nullable=True)
+    refresh_token = db.Column(db.String(255), nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
     
-    # 关联
-    user = db.relationship('User', backref=db.backref('applications', lazy=True))
-    application = db.relationship('Application', backref=db.backref('users', lazy=True))
+    # 关系
+    user = db.relationship('User', back_populates='applications')
+    application = db.relationship('Application', back_populates='user_applications')
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'app_id', name='uix_user_application'),
+    )
+    
+    @classmethod
+    def user_has_access(cls, user_id, app_id):
+        """检查用户是否有访问应用的权限"""
+        return cls.query.filter_by(user_id=user_id, app_id=app_id).first() is not None
+    
+    @classmethod
+    def grant_access(cls, user_id, app_id):
+        """授权用户访问应用"""
+        if cls.user_has_access(user_id, app_id):
+            return False
+        
+        user_app = cls(user_id=user_id, app_id=app_id)
+        db.session.add(user_app)
+        db.session.commit()
+        return True
+    
+    @classmethod
+    def revoke_access(cls, user_id, app_id):
+        """撤销用户访问应用的权限"""
+        user_app = cls.query.filter_by(user_id=user_id, app_id=app_id).first()
+        if not user_app:
+            return False
+        
+        db.session.delete(user_app)
+        db.session.commit()
+        return True
 
-    @staticmethod
-    def user_has_access(user_id, app_id):
-        return UserApplication.query.filter_by(user_id=user_id, application_id=app_id).first() is not None
+class ApplicationRequest(BaseModel):
+    """应用访问请求"""
+    __tablename__ = 'application_requests'
     
-    @staticmethod
-    def grant_access(user_id, app_id):
-        if not UserApplication.user_has_access(user_id, app_id):
-            access = UserApplication(user_id=user_id, application_id=app_id)
-            db.session.add(access)
-            db.session.commit()
-            return True
-        return False
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_app_request_user'), nullable=False)
+    app_id = db.Column(db.String(50), db.ForeignKey('applications.app_id', name='fk_app_request_app'), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    processed_at = db.Column(db.DateTime, nullable=True)
     
-    @staticmethod
-    def revoke_access(user_id, app_id):
-        access = UserApplication.query.filter_by(user_id=user_id, application_id=app_id).first()
-        if access:
-            db.session.delete(access)
-            db.session.commit()
-            return True
-        return False 
+    # 关系
+    user = db.relationship('User', back_populates='app_requests')
+    app = db.relationship('Application', back_populates='app_requests')
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'app_id', name='uix_user_app_request'),
+    ) 

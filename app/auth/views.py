@@ -4,6 +4,7 @@ from . import auth
 from app.models.user import User
 from .forms import LoginForm
 from datetime import datetime
+from app.services.auth_service import AuthService
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -16,22 +17,23 @@ def login():
         password = form.password.data
         remember = form.remember.data
         
-        user = User.query.filter_by(username=username).first()
+        # 使用AuthService进行登录
+        user, error = AuthService.login(username, password, remember)
         
-        if user is not None and user.check_password(password):
-            login_user(user, remember=remember)
+        if user:
             next = request.args.get('next')
             if next is None or not next.startswith('/'):
                 next = url_for('user.profile')
             return redirect(next)
-        
-        flash('用户名或密码错误', 'error')
+        else:
+            flash(error, 'error')
     
     return render_template('auth/login.html', form=form, current_year=datetime.now().year)
 
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    logout_user()
-    flash('您已成功退出登录', 'success')
+    # 使用AuthService进行登出
+    _, message = AuthService.logout()
+    flash(message, 'success')
     return redirect(url_for('auth.login')) 

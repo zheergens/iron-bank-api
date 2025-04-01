@@ -1,0 +1,54 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}页面未找到{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-code">404</div>
+    <h1>页面未找到</h1>
+    <p>您访问的页面不存在或已被移除。</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">返回首页</a>
+</div>
+
+<style>
+    .error-container {
+        max-width: 600px;
+        margin: 100px auto;
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .error-code {
+        font-size: 120px;
+        font-weight: bold;
+        color: #f5f5f5;
+        margin-bottom: 20px;
+    }
+    
+    h1 {
+        margin: 0 0 20px;
+        color: #333;
+    }
+    
+    p {
+        color: #666;
+        margin-bottom: 30px;
+    }
+    
+    .btn-primary {
+        background: #1890ff;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background 0.3s;
+    }
+    
+    .btn-primary:hover {
+        background: #096dd9;
+    }
+</style>
+{% endblock %} 

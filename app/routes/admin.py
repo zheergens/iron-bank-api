@@ -182,22 +182,6 @@ def delete_user(user_id):
 @login_required
 @admin_required
 def system_info():
-    # 获取用户数量
-    user_count = User.query.count()
-    
-    # 获取系统信息
-    if not hasattr(current_app, 'start_time'):
-        current_app.start_time = datetime.datetime.now()
-    uptime = datetime.datetime.now() - current_app.start_time
-    uptime_str = f"{uptime.days}天 {uptime.seconds//3600}小时"
-    
-    system_info = {
-        'version': 'v1.0.0',  # 系统版本号
-        'uptime': uptime_str,  # 运行时间
-        'cpu_usage': random.randint(20, 80),  # CPU使用率（示例数据）
-        'memory_usage': random.randint(30, 90)  # 内存使用率（示例数据）
-    }
-    
     # 获取注册的应用
     registered_apps = []
     for app_id, app_data in current_app.config['REGISTERED_APPS'].items():
@@ -211,8 +195,6 @@ def system_info():
         })
     
     return render_template('admin/system_info.html', 
-                         user_count=user_count,
-                         system_info=system_info,
                          registered_apps=registered_apps)
 
 @admin.route('/apps/<app_id>/users')

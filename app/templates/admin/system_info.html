@@ -1,44 +1,9 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}系统信息 - 管理系统{% endblock %}
+{% block title %}应用管理 - 管理系统{% endblock %}
 
 {% block admin_content %}
 <div class="content-card">
-    <div class="header">
-        <h1>系统信息</h1>
-    </div>
-    
-    <div class="info-grid">
-        <div class="info-item">
-            <div class="info-label">系统版本</div>
-            <div class="info-value">{{ system_info.version }}</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">运行时间</div>
-            <div class="info-value">{{ system_info.uptime }}</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">CPU使用率</div>
-            <div class="info-value">
-                <div class="progress-bar">
-                    <div class="progress" style="width: {{ system_info.cpu_usage }}%"></div>
-                </div>
-                <span class="percentage">{{ system_info.cpu_usage }}%</span>
-            </div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">内存使用率</div>
-            <div class="info-value">
-                <div class="progress-bar">
-                    <div class="progress" style="width: {{ system_info.memory_usage }}%"></div>
-                </div>
-                <span class="percentage">{{ system_info.memory_usage }}%</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="content-card" style="margin-top: 24px;">
     <div class="header">
         <h1>已注册的应用</h1>
         <button class="btn btn-primary">
