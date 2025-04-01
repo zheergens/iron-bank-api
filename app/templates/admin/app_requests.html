@@ -424,14 +424,15 @@ document.getElementById('confirmRejectBtn').addEventListener('click', async func
             body: JSON.stringify({ reason })
         });
         
-        if (response.ok) {
+        const data = await response.json();
+        if (response.ok && data.success) {
             showMessage('success', '申请已拒绝');
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            const data = await response.json();
             showMessage('error', data.message || '操作失败');
         }
     } catch (error) {
+        console.error('Error:', error);
         showMessage('error', '网络错误，请重试');
     } finally {
         hideModal('rejectModal');
