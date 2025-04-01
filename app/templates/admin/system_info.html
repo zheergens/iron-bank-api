@@ -1,11 +1,11 @@
-{% extends "admin/base_admin.html" %}
+{% extends "layouts/admin.html" %}
 
-{% block title %}系统信息 - 登录系统{% endblock %}
+{% block title %}系统信息 - 管理系统{% endblock %}
 
 {% block admin_content %}
-<div class="admin-card">
-    <div class="admin-card-header">
-        <h2 class="admin-card-title">系统信息</h2>
+<div class="content-card">
+    <div class="header">
+        <h1>系统信息</h1>
     </div>
     
     <div class="info-grid">
@@ -38,15 +38,13 @@
     </div>
 </div>
 
-<div class="admin-card">
-    <div class="admin-card-header">
-        <h2 class="admin-card-title">已注册的应用</h2>
-        <div class="admin-actions">
-            <button class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                注册新应用
-            </button>
-        </div>
+<div class="content-card" style="margin-top: 24px;">
+    <div class="header">
+        <h1>已注册的应用</h1>
+        <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            注册新应用
+        </button>
     </div>
     
     <div class="app-grid">

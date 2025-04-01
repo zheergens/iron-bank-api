@@ -1,0 +1,121 @@
+{% extends "layouts/base.html" %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+/* 用户头像和下拉菜单样式 */
+.user-avatar {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    z-index: 1000;
+}
+
+.avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.avatar-img:hover {
+    transform: scale(1.05);
+}
+
+.avatar-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    padding: 8px 0;
+    min-width: 120px;
+    display: none;
+    margin-top: 8px;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    color: #333;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.dropdown-item:hover {
+    background: #f5f5f5;
+    color: #1890ff;
+}
+
+.dropdown-item i {
+    font-size: 14px;
+    color: #666;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+{% if current_user.is_authenticated %}
+<div class="user-avatar">
+    <div class="avatar-img">
+        <div class="user-initial">{{ current_user.username[0].upper() }}</div>
+    </div>
+    <div class="dropdown-menu">
+        <a href="{{ url_for('user.profile') }}" class="dropdown-item">
+            <i class="fas fa-user"></i>个人信息
+        </a>
+        <a href="{{ url_for('user.change_password') }}" class="dropdown-item">
+            <i class="fas fa-key"></i>修改密码
+        </a>
+        <form action="{{ url_for('auth.logout') }}" method="post" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="dropdown-item" style="width: 100%; border: none; background: none; font: inherit; text-align: left;">
+                <i class="fas fa-sign-out-alt"></i>退出登录
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// 添加头像点击下拉菜单功能
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarImg = document.querySelector('.avatar-img');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+
+    if (avatarImg && dropdownMenu) {
+        // 点击头像显示/隐藏菜单
+        avatarImg.addEventListener('click', function(e) {
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // 点击其他区域关闭菜单
+        document.addEventListener('click', function(e) {
+            if (!avatarImg.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

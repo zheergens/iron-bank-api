@@ -60,9 +60,13 @@ def profile():
     
     return render_template('user/profile.html', available_apps=available_apps)
 
-@user.route('/update_profile', methods=['POST'])
+@user.route('/update_profile', methods=['GET', 'POST'])
 @login_required
 def update_profile():
+    if request.method == 'GET':
+        return render_template('user/edit_profile.html')
+    
+    # POST 请求逻辑
     phone = request.form.get('phone')
     old_password = request.form.get('old_password')
     new_password = request.form.get('new_password')
@@ -73,27 +77,27 @@ def update_profile():
         # 确保所有密码字段都已填写
         if not all([old_password, new_password, confirm_password]):
             flash('如果要修改密码，请填写所有密码字段', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
         
         # 验证当前密码
         if not current_user.check_password(old_password):
             flash('当前密码错误', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
         
         # 验证新密码
         if new_password != confirm_password:
             flash('新密码两次输入不一致', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
         
         # 验证新密码长度
         if len(new_password) < 6:
             flash('新密码长度至少为6个字符', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
             
         # 验证新密码与旧密码不同
         if old_password == new_password:
             flash('新密码不能与当前密码相同', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
         
         try:
             current_user.set_password(new_password)
@@ -102,14 +106,14 @@ def update_profile():
         except Exception as e:
             db.session.rollback()
             flash('密码修改失败，请稍后重试', 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
     
     # 处理手机号更新
     if phone:
         success, message = current_user.update_profile(phone=phone)
         if not success:
             flash(message, 'error')
-            return redirect(url_for('user.profile'))
+            return redirect(url_for('user.update_profile'))
         flash('手机号更新成功', 'success')
     
     return redirect(url_for('user.profile'))
@@ -153,4 +157,46 @@ def request_app_access():
     db.session.commit()
     
     flash('申请已提交，请等待管理员审批')
-    return redirect(url_for('auth.profile')) 
+    return redirect(url_for('auth.profile'))
+
+@user.route('/update_password', methods=['POST'])
+@login_required
+def update_password():
+    old_password = request.form.get('old_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    # 验证所有必填字段
+    if not all([old_password, new_password, confirm_password]):
+        flash('请填写所有密码字段', 'error')
+        return redirect(url_for('user.change_password'))
+    
+    # 验证当前密码
+    if not current_user.check_password(old_password):
+        flash('当前密码错误', 'error')
+        return redirect(url_for('user.change_password'))
+    
+    # 验证新密码
+    if new_password != confirm_password:
+        flash('新密码两次输入不一致', 'error')
+        return redirect(url_for('user.change_password'))
+    
+    # 验证新密码长度
+    if len(new_password) < 6:
+        flash('新密码长度至少为6个字符', 'error')
+        return redirect(url_for('user.change_password'))
+        
+    # 验证新密码与旧密码不同
+    if old_password == new_password:
+        flash('新密码不能与当前密码相同', 'error')
+        return redirect(url_for('user.change_password'))
+    
+    try:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('密码修改成功', 'success')
+        return redirect(url_for('user.profile'))
+    except Exception as e:
+        db.session.rollback()
+        flash('密码修改失败，请稍后重试', 'error')
+        return redirect(url_for('user.change_password')) 

@@ -1,3 +1,309 @@
+/* 管理界面样式 */
+:root {
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 80px;
+  --header-height: 64px;
+  --sidebar-bg: #001529;
+  --sidebar-text: rgba(255, 255, 255, 0.65);
+  --sidebar-active: #1890ff;
+}
+
+/* 修改滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* 内容布局 */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-content {
+  padding-top: 0 !important;
+  min-height: 100vh;
+  background: #f3f4f6;
+  margin-left: 240px;
+  transition: margin-left 0.3s;
+}
+
+.admin-content.expanded {
+  margin-left: 80px;
+}
+
+/* 调整管理头部固定定位 */
+.admin-header {
+  background: #fff;
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  position: static;
+  margin-bottom: 16px;
+}
+
+.admin-header.expanded {
+  left: 80px;
+}
+
+/* 页面标题 */
+.page-title {
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* 数据卡片 */
+.data-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.data-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.data-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.data-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.data-card-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+.data-card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.data-card-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.trend-up {
+  color: #52c41a;
+}
+
+.trend-down {
+  color: #ff4d4f;
+}
+
+/* 表格样式 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.admin-table th {
+  font-weight: 500;
+  color: #6b7280;
+  background-color: #f9fafb;
+}
+
+.admin-table tr:hover td {
+  background-color: #f9fafb;
+}
+
+.admin-table .action-cell {
+  white-space: nowrap;
+}
+
+.table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: #6b7280;
+  transition: all 0.3s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.table-action:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1890ff;
+}
+
+.table-action.edit:hover {
+  color: #1890ff;
+}
+
+.table-action.delete:hover {
+  color: #ff4d4f;
+}
+
+/* 状态徽章 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+}
+
+.status-badge.inactive {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+.status-badge.pending {
+  background-color: rgba(250, 173, 20, 0.1);
+  color: #faad14;
+}
+
+/* 表单过滤器 */
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* 分页控件 */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #6b7280;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.pagination-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.pagination-btn.active {
+  background-color: #1890ff;
+  border-color: #1890ff;
+  color: white;
+}
+
+.pagination-btn.disabled {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: var(--sidebar-width-collapsed);
+  }
+  
+  .admin-header {
+    left: var(--sidebar-width-collapsed);
+  }
+  
+  .admin-content {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+  
+  .data-card-value {
+    font-size: 20px;
+  }
+  
+  .filter-group {
+    min-width: 100%;
+  }
+}
+
 .welcome-title {
     font-size: 1.6rem;
     margin-bottom: 20px;
@@ -781,4 +1087,30 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* 管理员头像样式 */
+.avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.avatar-img:hover {
+  transform: scale(1.05);
+}
+
+.user-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1890ff;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
 } 

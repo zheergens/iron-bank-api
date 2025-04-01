@@ -1,14 +1,14 @@
-{% extends "base.html" %}
+{% extends "layouts/base.html" %}
 
 {% block head_css %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='1.0.2') }}">
 <style>
-/* 移除内联的CSS样式，使用统一的admin.css中的样式 */
+/* 在此处移除任何冲突的内联样式 */
 </style>
 {% endblock %}
 
-{% block page_content %}
+{% block body %}
 <div class="admin-layout">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
