@@ -1,13 +1,6 @@
 from app.extensions import get_db
 from datetime import datetime
 from bson import ObjectId
-from .base import BaseModel
-
-def init_models():
-    """初始化所有模型"""
-    # 确保所有模型都被导入和初始化
-    from .user import User
-    from .application import Application, ApplicationRequest
 
 class BaseModel:
     """基础模型类，包含所有模型共用的字段和方法"""

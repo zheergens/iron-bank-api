@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_required, current_user
 from app.models.user import User
-from app.models.application import ApplicationRequest, UserApplication, Application
+from app.models.application import Application, ApplicationRequest
 from werkzeug.security import check_password_hash
 import datetime
 
@@ -45,18 +45,22 @@ def change_password():
 @login_required
 def profile():
     """用户个人资料页面"""
-    # 获取用户可访问的应用列表
-    user_apps = UserApplication.collection().find({'user_id': current_user.id})
-    app_ids = [user_app['app_id'] for user_app in user_apps]
-    
-    # 获取应用详情
-    applications = []
-    for app_id in app_ids:
-        app = Application.find_by_id(app_id)
-        if app:
-            applications.append(app)
-    
-    return render_template('user/profile.html', user=current_user, applications=applications)
+    try:
+        # 获取用户有权限访问的应用列表
+        app_requests = ApplicationRequest.get_user_apps(str(current_user._id))
+        
+        # 获取应用详情
+        apps = []
+        for app_request in app_requests:
+            app = Application.find_by_id(app_request.app_id)
+            if app:
+                apps.append(app)
+        
+        return render_template('user/profile.html', user=current_user, apps=apps)
+    except Exception as e:
+        current_app.logger.error(f"Error in profile: {str(e)}")
+        flash('获取个人资料失败')
+        return redirect(url_for('main.index'))
 
 @user.route('/update_profile', methods=['GET', 'POST'])
 @login_required
@@ -105,8 +109,7 @@ def update_profile():
 def request_app(app_id):
     """申请应用访问权限"""
     # 检查用户是否已经有权限
-    existing_access = UserApplication.find_by_user_and_app(current_user.id, app_id)
-    if existing_access:
+    if ApplicationRequest.check_user_access(current_user.id, app_id):
         flash('您已经有权限访问此应用')
         return redirect(url_for('user.profile'))
         
@@ -181,8 +184,12 @@ def app_permissions():
     # 获取用户的申请状态
     for app in applications:
         # 检查是否已经授权
-        user_app = UserApplication.find_by_user_and_app(current_user.id, app.id)
-        if user_app:
+        app_request = ApplicationRequest.collection().find_one({
+            'user_id': current_user.id,
+            'app_id': app.id,
+            'status': 'approved'
+        })
+        if app_request:
             app.request_status = 'approved'
             continue
             
@@ -214,8 +221,12 @@ def request_permission():
             return jsonify({'success': False, 'message': '应用不存在'}), 404
             
         # 检查是否已经授权
-        user_app = UserApplication.find_by_user_and_app(current_user.id, app_id)
-        if user_app:
+        existing_request = ApplicationRequest.collection().find_one({
+            'user_id': current_user.id,
+            'app_id': app_id,
+            'status': 'approved'
+        })
+        if existing_request:
             return jsonify({'success': False, 'message': '您已经拥有该应用的访问权限'}), 400
             
         # 检查是否有待处理的申请

@@ -2,110 +2,83 @@
 
 {% block title %}系统信息 - 管理系统{% endblock %}
 
-{% block head_css %}
+{% block styles %}
 {{ super() }}
 <style>
-.app-header {
+.system-info-container {
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-.app-header h2 {
+.section-title {
     font-size: 20px;
-    color: #1f2937;
+    font-weight: 600;
+    color: #111827;
     margin: 0;
-    font-weight: 500;
 }
 
-.app-container {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 24px;
-}
-
-.app-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 24px;
     margin-top: 16px;
 }
 
-.app-table th {
-    background: #f9fafb;
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 500;
-    color: #374151;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 14px;
+.app-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.app-table td {
-    padding: 16px;
-    border-bottom: 1px solid #f3f4f6;
-    color: #1f2937;
-    font-size: 14px;
+.app-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.app-table tr:hover td {
-    background-color: #f9fafb;
+.app-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.app-table tr:last-child td {
-    border-bottom: none;
+.app-info {
+    flex: 1;
 }
 
 .app-name {
-    font-weight: 500;
-    color: #1f2937;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.app-name i {
-    color: #6b7280;
     font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 4px 0;
 }
 
-.app-desc {
+.app-description {
+    font-size: 14px;
     color: #6b7280;
-    font-size: 13px;
-}
-
-.client-id {
-    font-family: monospace;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.copy-btn {
-    padding: 2px 4px;
-    background: none;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-}
-
-.copy-btn:hover {
-    color: #3b82f6;
-}
-
-.app-uri {
-    font-family: monospace;
-    font-size: 13px;
-    color: #374151;
+    margin: 0;
+    line-height: 1.5;
 }
 
 .app-status {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
+    padding: 4px 12px;
     border-radius: 9999px;
     font-size: 12px;
     font-weight: 500;
@@ -113,37 +86,85 @@
 
 .status-active {
     background-color: #dcfce7;
-    color: #15803d;
+    color: #166534;
 }
 
-.status-inactive {
-    background-color: #f3f4f6;
-    color: #4b5563;
+.app-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-label {
+    font-size: 13px;
+    color: #6b7280;
+    min-width: 80px;
+}
+
+.detail-value {
+    font-size: 13px;
+    color: #374151;
+    word-break: break-all;
 }
 
 .app-actions {
     display: flex;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
 }
 
-.action-btn {
-    padding: 6px;
+.action-button {
+    padding: 6px 12px;
     border-radius: 6px;
-    border: none;
-    background: none;
-    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
-.action-btn:hover {
-    background-color: #f3f4f6;
-    color: #3b82f6;
+.btn-edit {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
 }
 
-.action-btn.delete:hover {
-    background-color: #fee2e2;
+.btn-edit:hover {
+    background-color: #dbeafe;
+}
+
+.btn-delete {
+    background-color: #fef2f2;
     color: #dc2626;
+    border: 1px solid #fee2e2;
+}
+
+.btn-delete:hover {
+    background-color: #fee2e2;
+}
+
+.btn-register {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-register:hover {
+    background-color: #2563eb;
 }
 
 .empty-state {
@@ -152,237 +173,93 @@
     color: #6b7280;
 }
 
-.empty-state i {
-    font-size: 48px;
+.empty-state svg {
+    width: 48px;
+    height: 48px;
     margin-bottom: 16px;
-    color: #e5e7eb;
+    color: #d1d5db;
 }
 
 .empty-state p {
     margin: 0;
     font-size: 14px;
 }
-
-.register-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #3b82f6;
-    color: white;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.register-btn:hover {
-    background-color: #2563eb;
-}
-
-.register-btn i {
-    margin-right: 8px;
-}
-
-/* Toast 样式 */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-}
-
-.toast {
-    padding: 12px 24px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transform: translateX(120%);
-    transition: transform 0.3s ease-in-out;
-}
-
-.toast.show {
-    transform: translateX(0);
-}
-
-.toast-success {
-    background-color: #f6ffed;
-    border: 1px solid #b7eb8f;
-    color: #52c41a;
-}
-
-.toast-error {
-    background-color: #fff2f0;
-    border: 1px solid #ffccc7;
-    color: #ff4d4f;
-}
-
-.toast-info {
-    background-color: #e6f7ff;
-    border: 1px solid #91d5ff;
-    color: #1890ff;
-}
 </style>
 {% endblock %}
 
 {% block admin_content %}
-<div class="app-container">
-    <div class="app-header">
-        <h2>已注册的应用</h2>
-        <a href="{{ url_for('admin.new_app') }}" class="register-btn">
-            <i class="fas fa-plus"></i>
+<div class="system-info-container">
+    <div class="section-header">
+        <h2 class="section-title">已注册的应用</h2>
+        <button class="btn-register" onclick="window.location.href='{{ url_for('admin.register_app') }}'">
             注册新应用
-        </a>
+        </button>
     </div>
 
-    {% if apps %}
-    <div class="table-responsive">
-        <table class="app-table">
-            <thead>
-                <tr>
-                    <th>应用名称</th>
-                    <th>客户端ID</th>
-                    <th>重定向URI</th>
-                    <th>状态</th>
-                    <th style="width: 100px;">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in apps %}
-                <tr>
-                    <td>
-                        <div class="app-name">
-                            <i class="fas fa-cube"></i>
-                            {{ app.name }}
-                        </div>
-                        <div class="app-desc">{{ app.description }}</div>
-                    </td>
-                    <td>
-                        <div class="client-id">
-                            {{ app.client_id }}
-                            <button class="copy-btn" onclick="copyToClipboard('{{ app.client_id }}')">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="app-uri">{{ app.redirect_uri }}</div>
-                    </td>
-                    <td>
-                        <span class="app-status {% if app.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            {% if app.is_active %}活跃{% else %}停用{% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="app-actions">
-                            <a href="{{ url_for('admin.edit_app', app_id=app.id) }}" class="action-btn" title="编辑">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="action-btn" title="重置密钥" onclick="resetAppSecret('{{ app.id }}')">
-                                <i class="fas fa-key"></i>
-                            </button>
-                            <button class="action-btn delete" title="删除" onclick="deleteApp('{{ app.id }}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% if applications %}
+    <div class="app-grid">
+        {% for app in applications %}
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-info">
+                    <h3 class="app-name">{{ app.name }}</h3>
+                    <p class="app-description">{{ app.description or '暂无描述' }}</p>
+                </div>
+                <span class="app-status status-active">活跃</span>
+            </div>
+            <div class="app-details">
+                <div class="detail-item">
+                    <span class="detail-label">客户端ID</span>
+                    <span class="detail-value">{{ app.client_id }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">重定向URI</span>
+                    <span class="detail-value">{{ app.redirect_uri }}</span>
+                </div>
+            </div>
+            <div class="app-actions">
+                <button class="action-button btn-edit" onclick="window.location.href='{{ url_for('admin.edit_app', app_id=app.id) }}'">
+                    编辑
+                </button>
+                <button class="action-button btn-delete" onclick="deleteApp('{{ app.id }}', '{{ app.name }}')">
+                    删除
+                </button>
+            </div>
+        </div>
+        {% endfor %}
     </div>
     {% else %}
     <div class="empty-state">
-        <i class="fas fa-cube"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <p>暂无已注册的应用</p>
     </div>
     {% endif %}
 </div>
 
 <script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('已复制到剪贴板', 'success');
-    }).catch(() => {
-        showToast('复制失败', 'error');
-    });
-}
-
-function deleteApp(appId) {
-    if (confirm('确定要删除此应用吗？此操作不可撤销。')) {
-        const formData = new FormData();
-        formData.append('csrf_token', '{{ csrf_token() }}');
-        
-        fetch(`/admin/apps/${appId}/delete`, {
+function deleteApp(appId, appName) {
+    if (confirm(`确定要删除应用"${appName}"吗？此操作不可恢复。`)) {
+        fetch(`/api/apps/${appId}/delete`, {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast(data.message, 'success');
-                location.reload();
+                alert(data.message);
+                window.location.reload();
             } else {
-                showToast(data.message, 'error');
+                alert(data.message || '删除失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showToast('删除应用失败，请重试', 'error');
+            alert('删除失败，请稍后重试');
         });
-    }
-}
-
-function resetAppSecret(appId) {
-    if (confirm('确定要重置此应用的密钥吗？重置后需要更新使用此应用的客户端配置。')) {
-        const formData = new FormData();
-        formData.append('csrf_token', '{{ csrf_token() }}');
-        
-        fetch(`/admin/apps/${appId}/reset_secret`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('密钥已重置，新的密钥为：' + data.client_secret, 'success', 0);
-            } else {
-                showToast(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('重置密钥失败，请重试', 'error');
-        });
-    }
-}
-
-function showToast(message, type = 'info', duration = 3000) {
-    // 创建toast元素
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    // 添加到页面
-    const container = document.createElement('div');
-    container.className = 'toast-container';
-    container.appendChild(toast);
-    document.body.appendChild(container);
-    
-    // 淡入效果
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
-    
-    // 如果duration为0，不自动关闭
-    if (duration > 0) {
-        // 到时间后淡出并移除
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                document.body.removeChild(container);
-            }, 300);
-        }, duration);
     }
 }
 </script>

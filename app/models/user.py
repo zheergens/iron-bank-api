@@ -1,129 +1,73 @@
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models import BaseModel
 from datetime import datetime
+from .base import BaseModel
 from bson import ObjectId
 
 class User(UserMixin, BaseModel):
     """用户模型"""
     collection_name = 'users'
     
-    def __init__(self, username, email, password, phone=None, is_active=True, is_admin=False, permissions=None):
+    def __init__(self, username=None, password=None, email=None, phone=None, is_admin=False):
         self.username = username
         self.email = email
-        self.password_hash = None
         self.phone = phone
-        self._is_active = is_active
-        self._is_admin = is_admin
-        self.permissions = permissions or []
-        self.last_login = None
+        self.is_admin = is_admin
+        self._is_active = True
         self.created_at = datetime.utcnow().replace(tzinfo=None)
-        self.updated_at = datetime.utcnow().replace(tzinfo=None)
+        self.updated_at = self.created_at
         if password:
             self.set_password(password)
-    
-    def get_id(self):
-        """获取用户ID（字符串格式）"""
-        return str(self._id) if hasattr(self, '_id') and self._id else None
-    
-    @property
-    def id(self):
-        return self.get_id()
-    
-    @property
-    def password(self):
-        raise AttributeError('密码不可读')
-    
-    @password.setter
-    def password(self, password):
-        self.password_hash = generate_password_hash(password)
-    
-    def check_password(self, password):
-        """验证密码"""
-        if not self.password_hash:
-            return False
-        return check_password_hash(self.password_hash, password)
     
     def set_password(self, password):
         """设置密码"""
         self.password_hash = generate_password_hash(password)
     
+    def check_password(self, password):
+        """验证密码"""
+        return check_password_hash(self.password_hash, password)
+    
+    @property
+    def is_authenticated(self):
+        return True
+    
     @property
     def is_active(self):
-        """是否激活"""
-        return self._is_active
+        return getattr(self, '_is_active', True)
     
     @is_active.setter
     def is_active(self, value):
-        """设置激活状态"""
         self._is_active = bool(value)
     
     @property
-    def is_admin(self):
-        """是否为管理员"""
-        return self._is_admin
+    def is_anonymous(self):
+        return False
     
-    @is_admin.setter
-    def is_admin(self, value):
-        """设置管理员状态"""
-        self._is_admin = bool(value)
+    @property
+    def id(self):
+        """获取用户ID"""
+        return str(self._id) if hasattr(self, '_id') else None
     
-    def to_dict(self):
-        data = {
-            'username': self.username,
-            'email': self.email,
-            'phone': self.phone,
-            'is_active': self.is_active,
-            'is_admin': self.is_admin,
-            'permissions': self.permissions,
-            'last_login': self.last_login,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
-            'password_hash': self.password_hash
-        }
-        if hasattr(self, '_id') and self._id:
-            data['_id'] = self._id
-        return data
-    
-    @classmethod
-    def from_dict(cls, data):
-        if data is None:
-            return None
-            
-        user = cls(
-            username=data.get('username'),
-            email=data.get('email'),
-            password=None,
-            phone=data.get('phone'),
-            is_active=data.get('is_active', True),
-            is_admin=data.get('is_admin', False),
-            permissions=data.get('permissions', [])
-        )
-        if '_id' in data:
-            user._id = data['_id']
-        user.password_hash = data.get('password_hash')
-        user.last_login = data.get('last_login')
-        user.created_at = data.get('created_at')
-        user.updated_at = data.get('updated_at')
-        return user
+    def get_id(self):
+        return str(self._id) if hasattr(self, '_id') else None
     
     @classmethod
     def find_by_username(cls, username):
         """通过用户名查找用户"""
         data = cls.collection().find_one({'username': username})
-        return cls.from_dict(data)
+        return cls.from_dict(data) if data else None
     
     @classmethod
     def find_by_email(cls, email):
         """通过邮箱查找用户"""
         data = cls.collection().find_one({'email': email})
-        return cls.from_dict(data)
+        return cls.from_dict(data) if data else None
     
     @classmethod
     def find_by_phone(cls, phone):
         """通过手机号查找用户"""
         data = cls.collection().find_one({'phone': phone})
-        return cls.from_dict(data)
+        return cls.from_dict(data) if data else None
     
     @classmethod
     def find_by_id(cls, user_id):
@@ -157,9 +101,9 @@ class User(UserMixin, BaseModel):
             email=email,
             password=password,
             phone=phone,
-            is_admin=is_admin,
-            permissions=[role]  # 将role作为权限添加
+            is_admin=is_admin
         )
+        user.permissions = [role]  # 将role作为权限添加
         
         try:
             user.save()
@@ -186,19 +130,25 @@ class User(UserMixin, BaseModel):
         self.save()
         
     def has_permission(self, permission):
-        return permission in self.permissions
+        """检查用户是否有指定权限"""
+        return hasattr(self, 'permissions') and permission in self.permissions
     
     def add_permission(self, permission):
+        """添加权限"""
+        if not hasattr(self, 'permissions'):
+            self.permissions = []
         if permission not in self.permissions:
             self.permissions.append(permission)
             self.save()
     
     def remove_permission(self, permission):
-        if permission in self.permissions:
+        """移除权限"""
+        if hasattr(self, 'permissions') and permission in self.permissions:
             self.permissions.remove(permission)
             self.save()
     
     def save(self):
+        """保存用户数据"""
         data = self.to_dict()
         if hasattr(self, '_id') and self._id:
             self.collection().update_one(
@@ -210,4 +160,22 @@ class User(UserMixin, BaseModel):
             self._id = result.inserted_id
         
     def __repr__(self):
-        return f'<User {self.username}>' 
+        return f'<User {self.username}>'
+
+    def to_dict(self):
+        """将对象转换为字典"""
+        data = super().to_dict()
+        # 将 _is_active 转换为 is_active
+        if '_is_active' in data:
+            data['is_active'] = data.pop('_is_active')
+        return data
+    
+    @classmethod
+    def from_dict(cls, data):
+        """从字典创建对象"""
+        if data is None:
+            return None
+        # 将 is_active 转换为 _is_active
+        if 'is_active' in data:
+            data['_is_active'] = data.pop('is_active')
+        return super().from_dict(data) 

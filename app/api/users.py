@@ -1,61 +1,72 @@
-from flask import jsonify, request
-from flask_login import current_user, login_required
+from flask import Blueprint, jsonify, request, current_app
+from flask_login import login_required, current_user
 from app.models.user import User
-from app.api import api
+from app.decorators import admin_required
 
-@api.route('/users/me', methods=['GET'])
-@login_required
-def get_current_user():
-    """获取当前登录用户信息"""
-    return jsonify({
-        'id': current_user.id,
-        'username': current_user.username,
-        'email': current_user.email,
-        'role': current_user.role,
-        'is_admin': current_user.is_admin,
-        'last_login': current_user.last_login.isoformat() if current_user.last_login else None,
-        'created_at': current_user.created_at.isoformat()
-    })
+api_users = Blueprint('api_users', __name__)
 
-@api.route('/users', methods=['GET'])
+@api_users.route('/users', methods=['GET'])
 @login_required
+@admin_required
 def get_users():
-    """获取用户列表（管理员专用）"""
-    if not current_user.is_admin:
-        return jsonify({'error': '权限不足'}), 403
-
-    users = User.query.all()
-    user_list = []
-    
-    for user in users:
-        user_list.append({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'role': user.role,
-            'is_admin': user.is_admin,
-            'created_at': user.created_at.isoformat()
+    """获取用户列表"""
+    try:
+        users = []
+        for user in User.collection().find():
+            user_data = {
+                'id': str(user['_id']),
+                'username': user['username'],
+                'email': user['email'],
+                'phone': user.get('phone'),
+                'is_admin': user.get('is_admin', False),
+                'created_at': user.get('created_at')
+            }
+            users.append(user_data)
+            
+        return jsonify({
+            'success': True,
+            'data': users
         })
-    
-    return jsonify({'users': user_list})
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting users: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '获取用户列表失败'
+        }), 500
 
-@api.route('/users/<int:user_id>', methods=['GET'])
+@api_users.route('/users/<user_id>', methods=['DELETE'])
 @login_required
-def get_user(user_id):
-    """获取特定用户信息（管理员或本人）"""
-    # 只有管理员或本人可以查看用户详情
-    if not current_user.is_admin and current_user.id != user_id:
-        return jsonify({'error': '权限不足'}), 403
-    
-    user = User.get_by_id(user_id)
-    if not user:
-        return jsonify({'error': '用户不存在'}), 404
-    
-    return jsonify({
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': user.role,
-        'is_admin': user.is_admin,
-        'created_at': user.created_at.isoformat()
-    }) 
+@admin_required
+def delete_user(user_id):
+    """删除用户"""
+    try:
+        # 查找用户
+        user = User.get_by_id(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': '用户不存在'
+            }), 404
+            
+        # 不能删除自己
+        if str(user._id) == str(current_user._id):
+            return jsonify({
+                'success': False,
+                'message': '不能删除当前登录用户'
+            }), 400
+            
+        # 删除用户
+        user.delete()
+        
+        return jsonify({
+            'success': True,
+            'message': '用户已删除'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error deleting user: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '删除用户失败'
+        }), 500 

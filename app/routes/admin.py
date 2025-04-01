@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_required, current_user
 from app.models.user import User
-from app.models.application import Application, ApplicationRequest, UserApplication
+from app.models.application import Application, ApplicationRequest
 from app.decorators import admin_required
 import datetime
 import random
@@ -154,9 +154,40 @@ def delete_user(user_id):
 @login_required
 @admin_required
 def system_info():
-    # 获取注册的应用
-    apps = Application.get_all_active()
-    return render_template('admin/system_info.html', apps=apps)
+    """系统信息页面"""
+    try:
+        # 获取所有应用
+        applications = Application.get_all_active()
+        current_app.logger.info(f"Total applications in database: {len(applications)}")
+        current_app.logger.info(f"Applications type: {type(applications)}")
+        
+        # 打印原始数据
+        for app_data in Application.collection().find({'is_active': True}):
+            current_app.logger.info(f"Raw app data: {app_data}")
+        
+        # 打印每个应用的信息用于调试
+        for app in applications:
+            current_app.logger.info(f"Application: {app.name}, ID: {app.id}, Client ID: {app.client_id}, Is Active: {app.is_active}")
+            # 打印完整的应用对象属性
+            current_app.logger.info(f"Full app attributes: {app.__dict__}")
+            
+        # 检查applications是否为None或空列表
+        if applications is None:
+            current_app.logger.error("applications is None!")
+        elif len(applications) == 0:
+            current_app.logger.error("applications is empty list!")
+        else:
+            current_app.logger.info(f"applications contains {len(applications)} items")
+            
+        # 打印模板变量
+        template_vars = {'applications': applications}
+        current_app.logger.info(f"Template variables: {template_vars}")
+        
+        return render_template('admin/system_info.html', **template_vars)
+    except Exception as e:
+        current_app.logger.error(f"Error in system_info: {str(e)}")
+        flash('获取系统信息失败')
+        return redirect(url_for('admin.index'))
 
 @admin.route('/apps/<app_id>/users')
 @login_required
@@ -169,10 +200,10 @@ def manage_app_users(app_id):
         return redirect(url_for('admin.system_info'))
     
     # 获取已授权的用户
-    user_apps = UserApplication.find_by_app_id(app_id)
+    app_requests = ApplicationRequest.collection().find({'app_id': app_id, 'status': 'approved'})
     users = []
-    for user_app in user_apps:
-        user = User.find_by_id(user_app.user_id)
+    for app_request in app_requests:
+        user = User.find_by_id(app_request.get('user_id'))
         if user:
             users.append(user)
     
@@ -182,9 +213,15 @@ def manage_app_users(app_id):
 @login_required
 @admin_required
 def add_app_user(app_id, user_id):
-    # 授权用户访问应用
-    user_app = UserApplication(user_id=user_id, app_id=app_id)
-    user_app.save()
+    # 创建新的应用请求并直接批准
+    app_request = ApplicationRequest(
+        user_id=user_id,
+        app_id=app_id,
+        status='approved'
+    )
+    app_request.processed_at = datetime.datetime.utcnow()
+    app_request.processed_by = current_user.id
+    app_request.save()
     flash('用户授权成功')
     return redirect(url_for('admin.manage_app_users', app_id=app_id))
 
@@ -192,17 +229,19 @@ def add_app_user(app_id, user_id):
 @login_required
 @admin_required
 def remove_app_user(app_id, user_id):
-    # 移除用户访问应用的授权
-    user_app = UserApplication.find_by_user_and_app(user_id, app_id)
-    if user_app:
-        user_app.delete()
+    # 将用户的应用请求状态更新为rejected
+    result = ApplicationRequest.collection().update_many(
+        {'user_id': user_id, 'app_id': app_id, 'status': 'approved'},
+        {'$set': {'status': 'rejected', 'processed_at': datetime.datetime.utcnow(), 'processed_by': current_user.id}}
+    )
+    if result.modified_count > 0:
         flash('用户授权已移除')
     return redirect(url_for('admin.manage_app_users', app_id=app_id))
 
-@admin.route('/apps/new', methods=['GET', 'POST'])
+@admin.route('/apps/register', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def new_app():
+def register_app():
     """注册新应用"""
     form = FlaskForm()
     
@@ -233,7 +272,7 @@ def new_app():
             current_app.logger.error(f"Error creating application: {str(e)}")
             flash('创建应用失败，请重试', 'error')
     
-    return render_template('admin/new_app.html', form=form)
+    return render_template('admin/register_app.html', form=form)
 
 @admin.route('/apps/<app_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -254,7 +293,7 @@ def delete_app(app_id):
             return jsonify({'success': False, 'message': '应用不存在'}), 404
             
         # 删除与应用相关的授权
-        UserApplication.collection().delete_many({'app_id': app_id})
+        ApplicationRequest.collection().delete_many({'app_id': app_id})
         
         # 删除应用
         app.delete()
@@ -297,13 +336,6 @@ def approve_request(request_id):
         if request.status != 'pending':
             return jsonify({'success': False, 'message': '该申请已被处理'}), 400
             
-        # 创建用户应用关联
-        user_app = UserApplication(
-            user_id=request.user_id,
-            app_id=request.app_id
-        )
-        user_app.save()
-        
         # 更新申请状态
         request.status = 'approved'
         request.processed_at = datetime.datetime.utcnow()
