@@ -33,22 +33,62 @@
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='currentColor' d='M497 273L329 441c-15 15-41 4.5-41-17v-96H152c-13.3 0-24-10.7-24-24v-96c0-13.3 10.7-24 24-24h136V88c0-21.4 25.9-32 41-17l168 168c9.3 9.4 9.3 24.6 0 34zM192 436v-40c0-6.6-5.4-12-12-12H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h84c6.6 0 12-5.4 12-12V76c0-6.6-5.4-12-12-12H96c-53 0-96 43-96 96v192c0 53 43 96 96 96h84c6.6 0 12-5.4 12-12z'%3E%3C/path%3E%3C/svg%3E") center/contain no-repeat;
 }
 
+.sidebar-menu .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar-menu .menu-item:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu .menu-item.active {
+    color: #fff;
+    background: #1890ff;
+}
+
+.sidebar-menu .icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 10px;
+    opacity: 0.75;
+    filter: brightness(0) invert(1);
+}
+
+.sidebar-menu .menu-item:hover .icon {
+    opacity: 1;
+}
+
+.sidebar-menu .menu-item.active .icon {
+    opacity: 1;
+}
+
+.sidebar-menu .menu-item span:not(.icon) {
+    font-size: 14px;
+}
+
 .badge {
-    display: inline-block;
-    padding: 0.25em 0.6em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
     border-radius: 10px;
-    margin-left: 8px;
+    margin-left: auto;
 }
 
 .badge-warning {
+    background: #ff4d4f;
     color: #fff;
-    background-color: #ff4d4f;
 }
 </style>
 {% endblock %}
