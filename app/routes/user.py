@@ -14,17 +14,17 @@ def change_password():
         confirm_password = request.form.get('confirm_password')
         
         if not current_user.check_password(old_password):
-            flash('当前密码错误')
-            return render_template('user/change_password.html')
+            flash('当前密码错误', 'error')
+            return redirect(url_for('user.change_password'))
         
         if new_password != confirm_password:
-            flash('新密码两次输入不一致')
-            return render_template('user/change_password.html')
+            flash('新密码两次输入不一致', 'error')
+            return redirect(url_for('user.change_password'))
         
         current_user.set_password(new_password)
         db.session.commit()
-        flash('密码修改成功')
-        return redirect(url_for('auth.profile'))
+        flash('密码修改成功', 'success')
+        return redirect(url_for('user.change_password'))
     
     return render_template('user/change_password.html')
 
@@ -116,7 +116,7 @@ def update_profile():
             return redirect(url_for('user.update_profile'))
         flash('手机号更新成功', 'success')
     
-    return redirect(url_for('user.profile'))
+    return redirect(url_for('user.update_profile'))
 
 @user.route('/request_app_access', methods=['POST'])
 @login_required
@@ -195,7 +195,7 @@ def update_password():
         current_user.set_password(new_password)
         db.session.commit()
         flash('密码修改成功', 'success')
-        return redirect(url_for('user.profile'))
+        return redirect(url_for('user.change_password'))
     except Exception as e:
         db.session.rollback()
         flash('密码修改失败，请稍后重试', 'error')

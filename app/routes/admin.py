@@ -77,28 +77,14 @@ def new_user():
             username = request.form.get('username')
             email = request.form.get('email')
             phone = request.form.get('phone')
-            password = request.form.get('password')
-            confirm_password = request.form.get('confirm_password')
             role = request.form.get('role', 'user')
             
             current_app.logger.info(f"Parsed data: username={username}, email={email}, phone={phone}, role={role}")
             
             # 验证必填字段
-            if not username or not email or not password or not confirm_password:
+            if not username or not email:
                 current_app.logger.warning("Missing required fields")
                 flash('请填写所有必填字段')
-                return render_template('admin/users/new.html', form=form)
-            
-            # 验证密码长度
-            if len(password) < 6:
-                current_app.logger.warning("Password too short")
-                flash('密码长度至少为6个字符')
-                return render_template('admin/users/new.html', form=form)
-            
-            # 验证两次密码是否一致
-            if password != confirm_password:
-                current_app.logger.warning("Passwords do not match")
-                flash('两次输入的密码不一致')
                 return render_template('admin/users/new.html', form=form)
             
             # 检查用户名是否已存在
@@ -122,6 +108,9 @@ def new_user():
                     current_app.logger.warning(f"Phone already exists: {phone}")
                     flash('手机号已被使用')
                     return render_template('admin/users/new.html', form=form)
+            
+            # 创建默认密码：用户名+123
+            password = username + '123'
             
             # 创建新用户
             current_app.logger.info("Attempting to create user...")
