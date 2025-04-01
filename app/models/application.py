@@ -181,6 +181,39 @@ class ApplicationRequest(BaseModel):
         self.created_at = created_at or datetime.utcnow().replace(tzinfo=None)
         self.updated_at = datetime.utcnow().replace(tzinfo=None)
     
+    @property
+    def id(self):
+        """获取申请ID（字符串格式）"""
+        return str(self._id) if hasattr(self, '_id') and self._id else None
+    
+    @classmethod
+    def find_by_id(cls, id):
+        """通过ID查找申请"""
+        if isinstance(id, str):
+            try:
+                id = ObjectId(id)
+            except:
+                return None
+            
+        data = cls.collection().find_one({'_id': id})
+        if not data:
+            return None
+        
+        request = cls.from_dict(data)
+        if request:
+            request._id = data.get('_id')
+        return request
+    
+    @classmethod
+    def find_pending_requests(cls):
+        """获取所有待处理的申请"""
+        requests = []
+        for data in cls.collection().find({'status': 'pending'}).sort('created_at', -1):
+            request = cls.from_dict(data)
+            if request:
+                requests.append(request)
+        return requests
+    
     @classmethod
     def find_by_user_and_app(cls, user_id, app_id):
         """通过用户ID和应用ID查找申请"""
@@ -202,6 +235,12 @@ class ApplicationRequest(BaseModel):
         }
         if hasattr(self, '_id') and self._id:
             data['_id'] = self._id
+        if hasattr(self, 'processed_at'):
+            data['processed_at'] = self.processed_at
+        if hasattr(self, 'processed_by'):
+            data['processed_by'] = self.processed_by
+        if hasattr(self, 'reject_reason'):
+            data['reject_reason'] = self.reject_reason
         return data
     
     @classmethod
@@ -210,13 +249,22 @@ class ApplicationRequest(BaseModel):
         if not data:
             return None
             
-        app_request = cls(
+        request = cls(
             user_id=data.get('user_id'),
             app_id=data.get('app_id'),
-            status=data.get('status'),
+            status=data.get('status', 'pending'),
             created_at=data.get('created_at')
         )
+        
         if '_id' in data:
-            app_request._id = data['_id']
-        app_request.updated_at = data.get('updated_at')
-        return app_request 
+            request._id = data['_id']
+        if 'processed_at' in data:
+            request.processed_at = data['processed_at']
+        if 'processed_by' in data:
+            request.processed_by = data['processed_by']
+        if 'reject_reason' in data:
+            request.reject_reason = data['reject_reason']
+        if 'updated_at' in data:
+            request.updated_at = data['updated_at']
+            
+        return request 

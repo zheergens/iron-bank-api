@@ -62,6 +62,9 @@ def profile():
 @login_required
 def update_profile():
     """更新用户个人资料"""
+    if request.method == 'GET':
+        return render_template('user/edit_profile.html')
+        
     phone = request.form.get('phone')
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
@@ -166,4 +169,74 @@ def update_password():
     current_user.set_password(new_password)
     current_user.save()
     flash('密码修改成功', 'success')
-    return redirect(url_for('user.change_password')) 
+    return redirect(url_for('user.change_password'))
+
+@user.route('/app_permissions')
+@login_required
+def app_permissions():
+    """应用权限申请页面"""
+    # 获取所有活跃的应用
+    applications = Application.get_all_active()
+    
+    # 获取用户的申请状态
+    for app in applications:
+        # 检查是否已经授权
+        user_app = UserApplication.find_by_user_and_app(current_user.id, app.id)
+        if user_app:
+            app.request_status = 'approved'
+            continue
+            
+        # 检查是否有待处理的申请
+        app_request = ApplicationRequest.find_by_user_and_app(current_user.id, app.id)
+        if app_request:
+            app.request_status = app_request.status
+            app.reject_reason = getattr(app_request, 'reject_reason', None)
+        else:
+            app.request_status = None
+    
+    return render_template('user/app_permissions.html', applications=applications)
+
+@user.route('/request_permission', methods=['POST'])
+@login_required
+def request_permission():
+    """提交应用权限申请"""
+    try:
+        data = request.get_json()
+        app_id = data.get('app_id')
+        reason = data.get('reason', '')
+        
+        if not app_id:
+            return jsonify({'success': False, 'message': '缺少应用ID'}), 400
+            
+        # 检查应用是否存在
+        app = Application.find_by_id(app_id)
+        if not app:
+            return jsonify({'success': False, 'message': '应用不存在'}), 404
+            
+        # 检查是否已经授权
+        user_app = UserApplication.find_by_user_and_app(current_user.id, app_id)
+        if user_app:
+            return jsonify({'success': False, 'message': '您已经拥有该应用的访问权限'}), 400
+            
+        # 检查是否有待处理的申请
+        app_request = ApplicationRequest.find_by_user_and_app(current_user.id, app_id)
+        if app_request and app_request.status == 'pending':
+            return jsonify({'success': False, 'message': '您已经提交过申请，请等待审核'}), 400
+            
+        # 创建新的申请
+        new_request = ApplicationRequest(
+            user_id=current_user.id,
+            app_id=app_id
+        )
+        if reason:
+            new_request.reason = reason
+        new_request.save()
+        
+        return jsonify({
+            'success': True,
+            'message': '申请已提交，请等待审核'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error requesting permission: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500 

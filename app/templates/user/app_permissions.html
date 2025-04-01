@@ -1,0 +1,553 @@
+{% extends "layouts/admin.html" %}
+
+{% block title %}应用权限申请 - 用户中心{% endblock %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+/* 卡片网格布局 */
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+/* 应用卡片样式 */
+.app-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.app-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.app-card-header {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.app-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #1f1f1f;
+}
+
+.app-card-body {
+    padding: 16px;
+}
+
+.app-description {
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 42px;
+}
+
+.app-status {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+/* 状态标签样式 */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.status-badge i {
+    margin-right: 4px;
+    font-size: 12px;
+}
+
+.status-pending {
+    background-color: #faad14;
+    color: #fff;
+}
+
+.status-approved {
+    background-color: #52c41a;
+    color: #fff;
+}
+
+.status-rejected {
+    background-color: #ff4d4f;
+    color: #fff;
+}
+
+.status-none {
+    background-color: #d9d9d9;
+    color: #fff;
+}
+
+.reject-reason {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #ff4d4f;
+    flex: 1;
+}
+
+/* 操作按钮样式 */
+.app-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.btn-request {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: #1890ff;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 88px;
+}
+
+.btn-request i {
+    margin-right: 4px;
+    font-size: 14px;
+}
+
+.btn-request:hover {
+    background-color: #40a9ff;
+}
+
+.btn-request:active {
+    background-color: #096dd9;
+}
+
+.btn-request:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #d9d9d9;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* 加载动画 */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 6px;
+}
+
+/* 模态对话框样式 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    width: 90%;
+    max-width: 400px;
+    z-index: 1001;
+    animation: slideIn 0.2s ease;
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #262626;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #666;
+}
+
+.modal-body {
+    padding: 16px 24px;
+}
+
+.modal-app-info {
+    background-color: #fafafa;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #f0f0f0;
+}
+
+.modal-app-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #262626;
+    margin-bottom: 8px;
+}
+
+.modal-app-desc {
+    font-size: 14px;
+    color: #595959;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.modal-form-group {
+    margin-bottom: 0;
+}
+
+.modal-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #262626;
+    font-weight: 500;
+}
+
+.modal-textarea {
+    width: calc(100% - 2px);
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 60px;
+    height: 60px;
+    resize: none;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    color: #262626;
+    box-sizing: border-box;
+}
+
+.modal-textarea::placeholder {
+    color: #bfbfbf;
+}
+
+.modal-textarea:hover {
+    border-color: #40a9ff;
+}
+
+.modal-textarea:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24,144,255,0.1);
+    outline: none;
+}
+
+.modal-footer {
+    padding: 12px 24px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background-color: #fafafa;
+    border-radius: 0 0 12px 12px;
+}
+
+.modal-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    height: 36px;
+}
+
+.modal-btn-cancel {
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    color: #595959;
+}
+
+.modal-btn-cancel:hover {
+    color: #40a9ff;
+    border-color: #40a9ff;
+    background-color: #fff;
+}
+
+.modal-btn-primary {
+    background-color: #1890ff;
+    border: none;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background-color: #40a9ff;
+}
+
+.modal-btn-primary:active {
+    background-color: #096dd9;
+}
+
+.modal-btn-primary:disabled {
+    background-color: #bfbfbf;
+    cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">应用权限申请</h2>
+    </div>
+    <div class="admin-card-body">
+        {% if applications %}
+        <div class="app-grid">
+            {% for app in applications %}
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h3 class="app-card-title">{{ app.name }}</h3>
+                </div>
+                <div class="app-card-body">
+                    <div class="app-description">{{ app.description }}</div>
+                    <div class="app-status">
+                        {% if app.request_status %}
+                        <span class="status-badge status-{{ app.request_status }}">
+                            <i class="fas fa-{% if app.request_status == 'pending' %}clock{% elif app.request_status == 'approved' %}check-circle{% else %}times-circle{% endif %}"></i>
+                            {{ {'pending': '审核中', 'approved': '已授权', 'rejected': '已拒绝'}[app.request_status] }}
+                        </span>
+                        {% if app.request_status == 'rejected' and app.reject_reason %}
+                        <span class="reject-reason">
+                            拒绝原因：{{ app.reject_reason }}
+                        </span>
+                        {% endif %}
+                        {% else %}
+                        <span class="status-badge status-none">
+                            <i class="fas fa-question-circle"></i>
+                            未申请
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="app-actions">
+                        <button class="btn-request" 
+                                onclick="requestPermission('{{ app.id }}', '{{ app.name }}')"
+                                {% if app.request_status in ['pending', 'approved'] %}disabled{% endif %}>
+                            {% if app.request_status == 'pending' %}
+                            <i class="fas fa-clock"></i>审核中
+                            {% elif app.request_status == 'approved' %}
+                            <i class="fas fa-check-circle"></i>已授权
+                            {% else %}
+                            <i class="fas fa-key"></i>申请权限
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-cubes"></i>
+            <p>暂无可申请的应用</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加模态对话框 HTML -->
+<div id="permissionModal" class="modal-overlay">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">申请权限</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-app-info">
+                <div class="modal-app-name" id="modalAppName"></div>
+                <p class="modal-app-desc" id="modalAppDesc"></p>
+            </div>
+            <div class="modal-form-group">
+                <label class="modal-label" for="requestReason">申请原因</label>
+                <textarea id="requestReason" class="modal-textarea" 
+                    placeholder="请输入申请原因（选填）..."
+                    rows="4"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
+            <button id="submitBtn" class="modal-btn modal-btn-primary" onclick="submitRequest()">
+                确定申请
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+let currentAppId = '';
+let currentButton = null;
+
+function requestPermission(appId, appName) {
+    currentAppId = appId;
+    currentButton = event.target.closest('button');
+    
+    // 显示模态框
+    const modal = document.getElementById('permissionModal');
+    const modalAppName = document.getElementById('modalAppName');
+    const modalAppDesc = document.getElementById('modalAppDesc');
+    
+    modalAppName.textContent = appName;
+    modalAppDesc.textContent = '您正在申请访问此应用的权限';
+    
+    modal.style.display = 'block';
+    document.getElementById('requestReason').focus();
+}
+
+function closeModal() {
+    const modal = document.getElementById('permissionModal');
+    modal.style.display = 'none';
+    document.getElementById('requestReason').value = '';
+}
+
+function submitRequest() {
+    const reason = document.getElementById('requestReason').value;
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // 显示加载状态
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading"></span>处理中...';
+    
+    fetch('/user/request_permission', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            app_id: currentAppId,
+            reason: reason || ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal();
+            location.reload();
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            alert(data.message || '申请失败');
+        }
+    })
+    .catch(error => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        alert('提交申请时发生错误，请重试');
+    });
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('permissionModal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+
+// ESC键关闭模态框
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %} 

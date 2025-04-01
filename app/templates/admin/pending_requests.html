@@ -1,0 +1,473 @@
+{% extends "layouts/admin.html" %}
+
+{% block title %}待处理申请 - 管理系统{% endblock %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+.request-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.request-header h2 {
+    font-size: 20px;
+    color: #1f2937;
+    margin: 0;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.request-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #3b82f6;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.request-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s;
+}
+
+.request-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.request-info {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.request-user {
+    flex: 1;
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-email {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.request-app {
+    flex: 2;
+}
+
+.app-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-desc {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.request-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #6b7280;
+    font-size: 13px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.request-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.btn i {
+    margin-right: 8px;
+}
+
+.btn-approve {
+    background-color: #059669;
+    color: white;
+}
+
+.btn-approve:hover {
+    background-color: #047857;
+}
+
+.btn-reject {
+    background-color: white;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.btn-reject:hover {
+    background-color: #fee2e2;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 0;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #e5e7eb;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Toast 样式 */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    padding: 12px 24px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast-success {
+    background-color: #f6ffed;
+    border: 1px solid #b7eb8f;
+    color: #52c41a;
+}
+
+.toast-error {
+    background-color: #fff2f0;
+    border: 1px solid #ffccc7;
+    color: #ff4d4f;
+}
+
+.toast-info {
+    background-color: #e6f7ff;
+    border: 1px solid #91d5ff;
+    color: #1890ff;
+}
+
+/* 确认对话框样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90%;
+}
+
+.modal-header {
+    margin-bottom: 16px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #1f2937;
+}
+
+.modal-body {
+    margin-bottom: 24px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    min-height: 100px;
+    font-size: 14px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-secondary {
+    background-color: white;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background-color: #f3f4f6;
+}
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="request-container">
+    <div class="request-header">
+        <h2>
+            待处理申请
+            <span class="request-count">{{ requests|length }}</span>
+        </h2>
+    </div>
+
+    {% if requests %}
+    <div class="request-list">
+        {% for request in requests %}
+        <div class="request-card">
+            <div class="request-info">
+                <div class="request-user">
+                    <div class="user-name">
+                        <i class="fas fa-user"></i>
+                        {{ request.user.username }}
+                    </div>
+                    <div class="user-email">{{ request.user.email }}</div>
+                </div>
+                <div class="request-app">
+                    <div class="app-name">
+                        <i class="fas fa-cube"></i>
+                        {{ request.app.name }}
+                    </div>
+                    <div class="app-desc">{{ request.app.description }}</div>
+                </div>
+            </div>
+            <div class="request-meta">
+                <div class="meta-item">
+                    <i class="fas fa-clock"></i>
+                    申请时间：{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                {% if request.reason %}
+                <div class="meta-item">
+                    <i class="fas fa-comment"></i>
+                    申请理由：{{ request.reason }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="request-actions">
+                <button class="btn btn-reject" onclick="showRejectModal('{{ request.id }}')">
+                    <i class="fas fa-times"></i>
+                    拒绝
+                </button>
+                <button class="btn btn-approve" onclick="approveRequest('{{ request.id }}')">
+                    <i class="fas fa-check"></i>
+                    批准
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-check-circle"></i>
+        <p>暂无待处理的申请</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 拒绝原因对话框 -->
+<div id="rejectModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>拒绝申请</h3>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="rejectReason">拒绝原因</label>
+                <textarea id="rejectReason" placeholder="请输入拒绝原因..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRejectModal()">取消</button>
+            <button class="btn btn-reject" onclick="submitReject()">确认拒绝</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRequestId = null;
+
+function showRejectModal(requestId) {
+    currentRequestId = requestId;
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.getElementById('rejectReason').value = '';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    currentRequestId = null;
+}
+
+function approveRequest(requestId) {
+    if (confirm('确定要批准此申请吗？')) {
+        const formData = new FormData();
+        formData.append('csrf_token', '{{ csrf_token() }}');
+        
+        fetch(`/admin/requests/${requestId}/approve`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('申请已批准', 'success');
+                location.reload();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('操作失败，请重试', 'error');
+        });
+    }
+}
+
+function submitReject() {
+    if (!currentRequestId) return;
+    
+    const reason = document.getElementById('rejectReason').value.trim();
+    if (!reason) {
+        showToast('请输入拒绝原因', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('csrf_token', '{{ csrf_token() }}');
+    formData.append('reason', reason);
+    
+    fetch(`/admin/requests/${currentRequestId}/reject`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('申请已拒绝', 'success');
+            closeRejectModal();
+            location.reload();
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('操作失败，请重试', 'error');
+    });
+}
+
+function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    container.appendChild(toast);
+    document.body.appendChild(container);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+    
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(container);
+            }, 300);
+        }, duration);
+    }
+}
+</script>
+{% endblock %} 

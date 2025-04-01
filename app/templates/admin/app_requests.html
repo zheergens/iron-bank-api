@@ -1,98 +1,253 @@
-{% extends "admin/base_admin.html" %}
+{% extends "layouts/admin.html" %}
 
-{% block title %}平台授权 - 登录系统{% endblock %}
+{% block title %}应用权限审核 - 管理系统{% endblock %}
 
-{% block content %}
-<div class="header">
-    <h1>平台授权</h1>
-</div>
+{% block head_css %}
+{{ super() }}
+<style>
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
 
-<div class="dashboard-card">
-    <h2 class="dashboard-title">待处理申请</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>申请时间</th>
-                <th>用户</th>
-                <th>平台</th>
-                <th>申请原因</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for request in pending_requests %}
-            <tr>
-                <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td>{{ request.user.username }}</td>
-                <td>{{ request.app.name }}</td>
-                <td>{{ request.reason }}</td>
-                <td>
-                    <button class="btn btn-primary" onclick="approveRequest('{{ request.id }}')">批准</button>
-                    <button class="btn btn-danger" onclick="rejectRequest('{{ request.id }}')">拒绝</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+.status-pending {
+    background-color: #faad14;
+    color: #fff;
+}
 
-<div class="dashboard-card">
-    <h2 class="dashboard-title">历史记录</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>处理时间</th>
-                <th>用户</th>
-                <th>平台</th>
-                <th>状态</th>
-                <th>处理人</th>
-                <th>备注</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in history_records %}
-            <tr>
-                <td>{{ record.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td>{{ record.user.username }}</td>
-                <td>{{ record.app.name }}</td>
-                <td>
-                    <span class="status-badge {% if record.status == 'approved' %}status-active{% elif record.status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
-                        {{ {"approved": "已批准", "rejected": "已拒绝", "pending": "待处理"}[record.status] }}
-                    </span>
-                </td>
-                <td>{{ record.handler.username if record.handler else "-" }}</td>
-                <td>{{ record.comment or "-" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+.status-approved {
+    background-color: #52c41a;
+    color: #fff;
+}
+
+.status-rejected {
+    background-color: #ff4d4f;
+    color: #fff;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 16px;
+}
+
+.btn-action {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-approve {
+    background-color: #1890ff;
+    border-color: #1890ff;
+    color: white;
+}
+
+.btn-approve:hover {
+    background-color: #40a9ff;
+    border-color: #40a9ff;
+}
+
+.btn-reject {
+    background-color: #ff4d4f;
+    border-color: #ff4d4f;
+    color: white;
+    margin-left: 8px;
+}
+
+.btn-reject:hover {
+    background-color: #ff7875;
+    border-color: #ff7875;
+}
+
+.swal2-popup {
+    font-size: 14px !important;
+}
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">待处理申请</h2>
+    </div>
+    <div class="admin-card-body">
+        {% if requests %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>申请时间</th>
+                    <th>用户</th>
+                    <th>应用</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                <tr>
+                    <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ request.user.username if request.user else '未知用户' }}</td>
+                    <td>{{ request.application.name if request.application else '未知应用' }}</td>
+                    <td>
+                        <span class="status-badge status-{{ request.status }}">
+                            {{ {'pending': '待处理', 'approved': '已批准', 'rejected': '已拒绝'}[request.status] }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-action btn-approve" onclick="approveRequest('{{ request.id }}', '{{ request.user.username if request.user else '未知用户' }}', '{{ request.application.name if request.application else '未知应用' }}')">
+                            <i class="fas fa-check"></i> 批准
+                        </button>
+                        <button class="btn btn-action btn-reject" onclick="rejectRequest('{{ request.id }}', '{{ request.user.username if request.user else '未知用户' }}', '{{ request.application.name if request.application else '未知应用' }}')">
+                            <i class="fas fa-times"></i> 拒绝
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>暂无待处理的申请</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-function approveRequest(requestId) {
-    if (confirm('确定要批准此申请吗？')) {
-        window.location.href = "{{ url_for('admin.approve_request', request_id='') }}" + requestId;
-    }
+function approveRequest(requestId, username, appName) {
+    Swal.fire({
+        title: '批准申请',
+        html: `确定要批准 <strong>${username}</strong> 访问 <strong>${appName}</strong> 的申请吗？`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '确定批准',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#1890ff',
+        cancelButtonColor: '#8c8c8c',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/requests/${requestId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '已批准',
+                        text: '申请已成功批准',
+                        icon: 'success',
+                        confirmButtonColor: '#1890ff'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: '操作失败',
+                        text: data.message || '批准申请时发生错误',
+                        icon: 'error',
+                        confirmButtonColor: '#ff4d4f'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: '操作失败',
+                    text: '批准申请时发生错误，请重试',
+                    icon: 'error',
+                    confirmButtonColor: '#ff4d4f'
+                });
+            });
+        }
+    });
 }
 
-function rejectRequest(requestId) {
-    const comment = prompt('请输入拒绝原因：');
-    if (comment !== null) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{{ url_for('admin.reject_request', request_id='') }}" + requestId;
-        
-        const commentInput = document.createElement('input');
-        commentInput.type = 'hidden';
-        commentInput.name = 'comment';
-        commentInput.value = comment;
-        
-        form.appendChild(commentInput);
-        document.body.appendChild(form);
-        form.submit();
-    }
+function rejectRequest(requestId, username, appName) {
+    Swal.fire({
+        title: '拒绝申请',
+        html: `请输入拒绝 <strong>${username}</strong> 访问 <strong>${appName}</strong> 的原因：`,
+        input: 'textarea',
+        inputPlaceholder: '请输入拒绝原因...',
+        inputAttributes: {
+            'aria-label': '拒绝原因'
+        },
+        showCancelButton: true,
+        confirmButtonText: '确定拒绝',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#ff4d4f',
+        cancelButtonColor: '#8c8c8c',
+        reverseButtons: true,
+        inputValidator: (value) => {
+            if (!value) {
+                return '请输入拒绝原因';
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/requests/${requestId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ reason: result.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '已拒绝',
+                        text: '申请已成功拒绝',
+                        icon: 'success',
+                        confirmButtonColor: '#1890ff'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: '操作失败',
+                        text: data.message || '拒绝申请时发生错误',
+                        icon: 'error',
+                        confirmButtonColor: '#ff4d4f'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: '操作失败',
+                    text: '拒绝申请时发生错误，请重试',
+                    icon: 'error',
+                    confirmButtonColor: '#ff4d4f'
+                });
+            });
+        }
+    });
 }
 </script>
 {% endblock %} 

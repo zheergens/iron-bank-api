@@ -2,22 +2,13 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 from app.models.user import User
 from app.models.application import Application, ApplicationRequest, UserApplication
-from functools import wraps
+from app.decorators import admin_required
 import datetime
 import random
 from flask_wtf import FlaskForm
 from bson import ObjectId
 
 admin = Blueprint('admin', __name__)
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash('您需要管理员权限才能访问此页面')
-            return redirect(url_for('auth.login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 @admin.route('/')
 @login_required
@@ -292,64 +283,86 @@ def delete_app(app_id):
 @login_required
 @admin_required
 def app_requests():
+    """应用权限申请审核页面"""
     # 获取所有待处理的申请
-    requests = [ApplicationRequest.from_dict(req) for req in ApplicationRequest.collection().find({'status': 'pending'})]
+    requests = ApplicationRequest.find_pending_requests()
+    
+    # 获取用户和应用信息
+    for request in requests:
+        request.user = User.find_by_id(request.user_id)
+        request.application = Application.find_by_id(request.app_id)
+    
     return render_template('admin/app_requests.html', requests=requests)
 
-@admin.route('/approve_request', methods=['POST'])
+@admin.route('/requests/<request_id>/approve', methods=['POST'])
 @login_required
 @admin_required
-def approve_request():
-    request_id = request.form.get('request_id')
-    if not request_id:
-        flash('请求ID不能为空')
-        return redirect(url_for('admin.app_requests'))
-        
+def approve_request(request_id):
+    """批准应用权限申请"""
     try:
-        app_request = ApplicationRequest.find_by_id(request_id)
-        if not app_request:
-            flash('请求不存在')
-            return redirect(url_for('admin.app_requests'))
+        # 查找申请记录
+        request = ApplicationRequest.find_by_id(request_id)
+        if not request:
+            return jsonify({'success': False, 'message': '申请不存在'}), 404
             
-        # 处理请求
-        app_request.process('approved')
-        
+        if request.status != 'pending':
+            return jsonify({'success': False, 'message': '该申请已被处理'}), 400
+            
         # 创建用户应用关联
         user_app = UserApplication(
-            user_id=app_request.user_id,
-            app_id=app_request.app_id
+            user_id=request.user_id,
+            app_id=request.app_id
         )
         user_app.save()
         
-        flash('请求已批准')
+        # 更新申请状态
+        request.status = 'approved'
+        request.processed_at = datetime.datetime.utcnow()
+        request.processed_by = current_user.id
+        request.save()
+        
+        return jsonify({
+            'success': True,
+            'message': '申请已批准'
+        })
         
     except Exception as e:
         current_app.logger.error(f"Error approving request: {str(e)}")
-        flash('处理请求时发生错误')
-        
-    return redirect(url_for('admin.app_requests'))
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@admin.route('/reject_request', methods=['POST'])
+@admin.route('/requests/<request_id>/reject', methods=['POST'])
 @login_required
 @admin_required
-def reject_request():
-    request_id = request.form.get('request_id')
-    if not request_id:
-        flash('请求ID不能为空')
-        return redirect(url_for('admin.app_requests'))
-        
+def reject_request(request_id):
+    """拒绝应用权限申请"""
     try:
+        # 查找申请记录
         app_request = ApplicationRequest.find_by_id(request_id)
         if not app_request:
-            flash('请求不存在')
-            return redirect(url_for('admin.app_requests'))
+            return jsonify({'success': False, 'message': '申请不存在'}), 404
             
-        # 处理请求
-        app_request.process('rejected')
-        flash('请求已拒绝')
+        if app_request.status != 'pending':
+            return jsonify({'success': False, 'message': '该申请已被处理'}), 400
+            
+        # 从 JSON 数据中获取拒绝原因
+        data = request.get_json()
+        reason = data.get('reason') if data else None
+        
+        if not reason:
+            return jsonify({'success': False, 'message': '请提供拒绝原因'}), 400
+            
+        # 更新申请状态
+        app_request.status = 'rejected'
+        app_request.processed_at = datetime.datetime.utcnow()
+        app_request.processed_by = current_user.id
+        app_request.reject_reason = reason
+        app_request.save()
+        
+        return jsonify({
+            'success': True,
+            'message': '申请已拒绝'
+        })
         
     except Exception as e:
         current_app.logger.error(f"Error rejecting request: {str(e)}")
-        flash('处理请求时发生错误')
-        
-    return redirect(url_for('admin.app_requests')) 
+        return jsonify({'success': False, 'message': str(e)}), 500 
