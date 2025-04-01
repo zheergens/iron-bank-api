@@ -119,17 +119,20 @@
 <div class="admin-layout">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo">管理系统</div>
+            <div class="logo">{% if current_user.is_admin %}管理系统{% else %}用户中心{% endif %}</div>
         </div>
         <div class="sidebar-menu">
+            {% if current_user.is_admin %}
             <a href="{{ url_for('admin.index') }}" class="menu-item {% if request.endpoint == 'admin.index' %}active{% endif %}">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>仪表盘</span>
             </a>
+            {% endif %}
             <a href="{{ url_for('user.profile') }}" class="menu-item {% if request.endpoint == 'user.profile' %}active{% endif %}">
                 <i class="fas fa-user"></i>
                 <span>个人中心</span>
             </a>
+            {% if current_user.is_admin %}
             <a href="{{ url_for('admin.users') }}" class="menu-item {% if request.endpoint == 'admin.users' %}active{% endif %}">
                 <i class="fas fa-users"></i>
                 <span>用户管理</span>
@@ -138,6 +141,7 @@
                 <i class="fas fa-cog"></i>
                 <span>系统信息</span>
             </a>
+            {% endif %}
         </div>
     </div>
     
@@ -155,7 +159,7 @@
             </div>
             <div class="header-right">
                 <div class="user-avatar" onclick="toggleUserMenu()">
-                    {{ current_user.username[0].upper() }}
+                    <img src="{{ url_for('static', filename='images/default-avatar.svg') }}" alt="用户头像" class="avatar-img">
                 </div>
                 <div class="user-menu" id="userMenu">
                     <div class="user-menu-items">

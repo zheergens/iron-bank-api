@@ -5,6 +5,7 @@ from app.models.application import ApplicationRequest, UserApplication
 from functools import wraps
 import datetime
 import random
+from flask_wtf import FlaskForm
 
 admin = Blueprint('admin', __name__)
 
@@ -60,49 +61,88 @@ def users():
 @login_required
 @admin_required
 def new_user():
+    current_app.logger.info("=== 进入新用户创建路由 ===")
+    form = FlaskForm()
+    
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        role = request.form.get('role', 'user')
-        
-        # 验证密码长度
-        if len(password) < 6:
-            flash('密码长度至少为6个字符')
-            return render_template('admin/users/new.html')
-        
-        # 验证两次密码是否一致
-        if password != confirm_password:
-            flash('两次输入的密码不一致')
-            return render_template('admin/users/new.html')
-        
-        # 检查用户名是否已存在
-        existing_user = User.find_by_username(username)
-        if existing_user:
-            flash('用户名已存在')
-            return render_template('admin/users/new.html')
-        
-        # 检查邮箱是否已存在
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
-            flash('邮箱已被使用')
-            return render_template('admin/users/new.html')
-        
-        # 检查手机号是否已存在
-        if phone:
-            existing_phone = User.find_by_phone(phone)
-            if existing_phone:
-                flash('手机号已被使用')
-                return render_template('admin/users/new.html')
-        
-        # 创建新用户
-        User.create_user(username, email, password, phone, role)
-        flash('用户创建成功')
-        return redirect(url_for('admin.users'))
-        
-    return render_template('admin/users/new.html')
+        try:
+            if not form.validate():
+                current_app.logger.warning("CSRF validation failed")
+                flash('表单验证失败，请重试')
+                return render_template('admin/users/new.html', form=form)
+                
+            # 记录请求数据
+            current_app.logger.info(f"Form data: {request.form.to_dict()}")
+            
+            username = request.form.get('username')
+            email = request.form.get('email')
+            phone = request.form.get('phone')
+            password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+            role = request.form.get('role', 'user')
+            
+            current_app.logger.info(f"Parsed data: username={username}, email={email}, phone={phone}, role={role}")
+            
+            # 验证必填字段
+            if not username or not email or not password or not confirm_password:
+                current_app.logger.warning("Missing required fields")
+                flash('请填写所有必填字段')
+                return render_template('admin/users/new.html', form=form)
+            
+            # 验证密码长度
+            if len(password) < 6:
+                current_app.logger.warning("Password too short")
+                flash('密码长度至少为6个字符')
+                return render_template('admin/users/new.html', form=form)
+            
+            # 验证两次密码是否一致
+            if password != confirm_password:
+                current_app.logger.warning("Passwords do not match")
+                flash('两次输入的密码不一致')
+                return render_template('admin/users/new.html', form=form)
+            
+            # 检查用户名是否已存在
+            existing_user = User.find_by_username(username)
+            if existing_user:
+                current_app.logger.warning(f"Username already exists: {username}")
+                flash('用户名已存在')
+                return render_template('admin/users/new.html', form=form)
+            
+            # 检查邮箱是否已存在
+            existing_email = User.query.filter_by(email=email).first()
+            if existing_email:
+                current_app.logger.warning(f"Email already exists: {email}")
+                flash('邮箱已被使用')
+                return render_template('admin/users/new.html', form=form)
+            
+            # 检查手机号是否已存在
+            if phone:
+                existing_phone = User.find_by_phone(phone)
+                if existing_phone:
+                    current_app.logger.warning(f"Phone already exists: {phone}")
+                    flash('手机号已被使用')
+                    return render_template('admin/users/new.html', form=form)
+            
+            # 创建新用户
+            current_app.logger.info("Attempting to create user...")
+            user = User.create_user(username, email, password, phone, role)
+            
+            if user:
+                current_app.logger.info(f"User created successfully: {username}")
+                flash('用户创建成功')
+                return redirect(url_for('admin.users'))
+            else:
+                current_app.logger.error("User creation failed")
+                flash('用户创建失败，请稍后重试')
+                return render_template('admin/users/new.html', form=form)
+                
+        except Exception as e:
+            current_app.logger.error(f"Error in user creation: {str(e)}", exc_info=True)
+            flash('创建用户时发生错误，请稍后重试')
+            return render_template('admin/users/new.html', form=form)
+    
+    current_app.logger.info("Rendering new user form")
+    return render_template('admin/users/new.html', form=form)
 
 @admin.route('/users/<user_id>/edit', methods=['GET', 'POST'])
 @login_required

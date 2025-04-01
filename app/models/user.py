@@ -2,6 +2,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from flask_login import UserMixin
 from app.models import db
+from flask import current_app
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -55,11 +56,43 @@ class User(UserMixin, db.Model):
     
     @classmethod
     def create_user(cls, username, email, password, phone=None, role='user'):
-        user = cls(username=username, email=email, phone=phone, role=role)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        return user
+        try:
+            current_app.logger.info(f"=== 开始创建用户 ===")
+            current_app.logger.info(f"参数: username={username}, email={email}, phone={phone}, role={role}")
+            
+            # 验证用户名
+            if not username or len(username) < 2:
+                current_app.logger.warning(f"无效的用户名: {username}")
+                return None
+                
+            # 验证邮箱
+            if not email or '@' not in email:
+                current_app.logger.warning(f"无效的邮箱: {email}")
+                return None
+                
+            # 验证手机号（如果提供）
+            if phone:
+                if not phone.isdigit() or len(phone) != 11:
+                    current_app.logger.warning(f"无效的手机号: {phone}")
+                    return None
+            
+            current_app.logger.info("验证通过，开始创建用户对象")
+            # 创建用户对象
+            user = cls(username=username, email=email, phone=phone, role=role)
+            user.set_password(password)
+            
+            current_app.logger.info("开始保存到数据库")
+            # 添加到数据库
+            db.session.add(user)
+            db.session.commit()
+            
+            current_app.logger.info(f"用户创建成功: {username}")
+            return user
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"创建用户时发生数据库错误: {str(e)}", exc_info=True)
+            return None
     
     @classmethod
     def find_by_username(cls, username):
