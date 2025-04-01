@@ -84,6 +84,7 @@ def new_user():
 @login_required
 @admin_required
 def edit_user(user_id):
+    """编辑用户"""
     try:
         user = User.find_by_id(user_id)
         if not user:
@@ -92,27 +93,24 @@ def edit_user(user_id):
             
         form = FlaskForm()
         
-        if request.method == 'POST':
-            if not form.validate():
-                flash('表单验证失败，请重试')
-                return render_template('admin/users/edit.html', form=form, user=user)
-            
+        if request.method == 'POST' and form.validate():
             # 更新用户信息
             user.username = request.form.get('username')
             user.email = request.form.get('email')
             user.phone = request.form.get('phone')
-            user.role = request.form.get('role', 'user')
+            user.is_admin = request.form.get('role') == 'admin'
             
             # 如果提供了新密码，则更新密码
             new_password = request.form.get('password')
             if new_password:
                 user.set_password(new_password)
             
+            # 保存更改
             user.save()
             flash('用户信息更新成功')
             return redirect(url_for('admin.users'))
             
-        return render_template('admin/users/edit.html', form=form, user=user)
+        return render_template('admin/edit_user.html', form=form, user=user)
         
     except Exception as e:
         current_app.logger.error(f"Error editing user: {str(e)}")
@@ -205,16 +203,17 @@ def remove_app_user(app_id, user_id):
 @login_required
 @admin_required
 def new_app():
-    """创建新应用"""
-    if request.method == 'POST':
-        # 获取表单数据
+    """注册新应用"""
+    form = FlaskForm()
+    
+    if request.method == 'POST' and form.validate():
         name = request.form.get('name')
         description = request.form.get('description')
         redirect_uri = request.form.get('redirect_uri')
         
-        # 生成客户端ID和密钥
-        client_id = 'client_' + ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=16))
-        client_secret = ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=32))
+        # 生成随机的client_id和client_secret
+        client_id = f"client_{random.randbytes(12).hex()}"
+        client_secret = random.randbytes(24).hex()
         
         # 创建新应用
         app = Application(
@@ -226,25 +225,15 @@ def new_app():
             is_active=True
         )
         
-        # 保存应用
         try:
             app.save()
-            return jsonify({
-                'success': True, 
-                'message': f'应用 {name} 创建成功',
-                'app': {
-                    'id': app.id,
-                    'name': app.name,
-                    'client_id': app.client_id,
-                    'client_secret': app.client_secret
-                }
-            })
+            flash(f'应用注册成功！请保存好以下信息：\nClient ID: {client_id}\nClient Secret: {client_secret}', 'success')
+            return redirect(url_for('admin.system_info'))
         except Exception as e:
-            current_app.logger.error(f"Error creating app: {str(e)}")
-            return jsonify({'success': False, 'message': f'创建应用失败：{str(e)}'}), 500
+            current_app.logger.error(f"Error creating application: {str(e)}")
+            flash('创建应用失败，请重试', 'error')
     
-    # GET请求不应该到达这里，因为我们使用的是模态框
-    return redirect(url_for('admin.system_info'))
+    return render_template('admin/new_app.html', form=form)
 
 @admin.route('/apps/<app_id>/edit', methods=['GET', 'POST'])
 @login_required

@@ -75,7 +75,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.15);
     z-index: 1000;
     animation: fadeIn 0.15s ease;
     backdrop-filter: blur(1px);
@@ -88,31 +88,31 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: white;
-    padding: 16px;
-    border-radius: 4px;
-    box-shadow: 0 3px 6px -4px rgba(0,0,0,0.12), 0 6px 16px 0 rgba(0,0,0,0.08);
+    padding: 10px;
+    border-radius: 3px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     z-index: 1001;
-    width: 280px;
+    width: 240px;
     animation: slideIn 0.15s ease;
 }
 
 .modal-header {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     text-align: center;
 }
 
 .modal-title {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: normal;
     color: #262626;
     margin: 0;
 }
 
 .modal-body {
-    margin-bottom: 16px;
-    font-size: 13px;
+    margin-bottom: 8px;
+    font-size: 12px;
     color: #595959;
-    line-height: 1.4;
+    line-height: 1.2;
 }
 
 .modal-body p {
@@ -127,30 +127,31 @@
 .modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-top: 4px;
 }
 
 .form-group {
-    margin: 12px 0 0 0;
+    margin: 6px 0 0 0;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     color: #262626;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .form-control {
     width: 100%;
-    padding: 4px 8px;
+    padding: 3px 6px;
     border: 1px solid #d9d9d9;
     border-radius: 2px;
     transition: all 0.2s;
-    font-size: 13px;
+    font-size: 12px;
     resize: vertical;
-    min-height: 50px;
+    min-height: 32px;
+    line-height: 1.2;
 }
 
 .form-control:focus {
@@ -167,14 +168,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 12px;
-    font-size: 13px;
+    padding: 0 8px;
+    font-size: 12px;
     border-radius: 2px;
     cursor: pointer;
     transition: all 0.2s;
     border: 1px solid transparent;
-    height: 28px;
-    min-width: 52px;
+    height: 22px;
+    min-width: 44px;
     font-weight: normal;
 }
 

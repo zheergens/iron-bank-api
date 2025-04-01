@@ -1,6 +1,6 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}编辑用户 - 管理系统{% endblock %}
+{% block title %}注册新应用 - 管理系统{% endblock %}
 
 {% block head_css %}
 {{ super() }}
@@ -97,60 +97,39 @@
 .btn-primary:hover {
     background: #2563eb;
 }
-
-.select-control {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-}
 </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="form-container">
     <div class="form-header">
-        <h2>编辑用户</h2>
+        <h2>注册新应用</h2>
     </div>
     
     <form method="POST">
         {{ form.csrf_token }}
         
         <div class="form-group">
-            <label for="username">用户名</label>
-            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+            <label for="name">应用名称</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+            <div class="form-text">给你的应用起一个好记的名字</div>
         </div>
         
         <div class="form-group">
-            <label for="email">邮箱</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+            <label for="description">应用描述</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            <div class="form-text">简单描述一下你的应用是做什么的</div>
         </div>
         
         <div class="form-group">
-            <label for="phone">手机号</label>
-            <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone or '' }}">
-            <div class="form-text">选填</div>
-        </div>
-        
-        <div class="form-group">
-            <label for="role">角色</label>
-            <select class="form-control select-control" id="role" name="role">
-                <option value="user" {% if not user.is_admin %}selected{% endif %}>普通用户</option>
-                <option value="admin" {% if user.is_admin %}selected{% endif %}>管理员</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="password">新密码</label>
-            <input type="password" class="form-control" id="password" name="password">
-            <div class="form-text">如果不修改密码请留空</div>
+            <label for="redirect_uri">重定向URI</label>
+            <input type="url" class="form-control" id="redirect_uri" name="redirect_uri" required>
+            <div class="form-text">用户授权后重定向的地址，必须是完整的URL（例如：http://localhost:8080/callback）</div>
         </div>
         
         <div class="btn-container">
-            <a href="{{ url_for('admin.users') }}" class="btn btn-default">取消</a>
-            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('admin.system_info') }}" class="btn btn-default">取消</a>
+            <button type="submit" class="btn btn-primary">注册应用</button>
         </div>
     </form>
 </div>
