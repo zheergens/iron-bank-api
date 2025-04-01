@@ -1113,4 +1113,61 @@
   color: white;
   font-size: 18px;
   font-weight: 500;
+}
+
+/* 用户菜单样式 */
+.user-menu {
+  position: absolute;
+  top: 60px;
+  right: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 160px;
+  display: none;
+  z-index: 2000; /* 提高z-index确保菜单在最上层 */
+  margin-top: 4px;
+  border: 1px solid #eee;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  transform: translateY(-10px);
+}
+
+.user-menu.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.user-menu-items {
+  padding: 4px 0;
+}
+
+.user-menu-item {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.user-menu-item:hover {
+  background-color: #f3f4f6;
+  color: #1890ff;
+}
+
+.user-menu-item i {
+  width: 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* 修复表单按钮样式 */
+.user-menu-item:focus {
+  outline: none;
 } 

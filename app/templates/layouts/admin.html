@@ -2,7 +2,7 @@
 
 {% block head_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='1.0.2') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='1.0.3') }}">
 <style>
 /* 在此处移除任何冲突的内联样式 */
 </style>
@@ -51,7 +51,7 @@
                 </div>
             </div>
             <div class="header-right">
-                <div class="user-avatar" onclick="toggleUserMenu()">
+                <div class="user-avatar">
                     <div class="avatar-img">
                         <div class="user-initial">{{ current_user.username[0].upper() }}</div>
                     </div>
@@ -66,15 +66,15 @@
                             <i class="fas fa-key"></i>
                             <span>修改密码</span>
                         </a>
-                        <div class="user-menu-item" onclick="document.getElementById('logoutForm').submit()">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>退出登录</span>
-                        </div>
+                        <form id="logoutForm" action="{{ url_for('auth.logout') }}" method="post" style="margin: 0; padding: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="user-menu-item" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 8px 16px;">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>退出登录</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
-                <form id="logoutForm" action="{{ url_for('auth.logout') }}" method="post" style="display: none;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                </form>
             </div>
         </div>
         {% block admin_content %}{% endblock %}
@@ -108,19 +108,37 @@ document.addEventListener('DOMContentLoaded', function() {
         adminHeader.classList.toggle('expanded');
         localStorage.setItem('sidebarCollapsed', isSidebarCollapsed);
     });
+    
+    // 初始化用户菜单交互
+    setupUserMenu();
 });
 
-function toggleUserMenu() {
+function setupUserMenu() {
+    const userAvatar = document.querySelector('.user-avatar');
     const userMenu = document.getElementById('userMenu');
-    userMenu.classList.toggle('show');
-
-    // 点击其他地方关闭菜单
-    document.addEventListener('click', function closeMenu(e) {
-        if (!e.target.closest('.user-avatar') && !e.target.closest('.user-menu')) {
-            userMenu.classList.remove('show');
-            document.removeEventListener('click', closeMenu);
-        }
-    });
+    
+    if (userAvatar && userMenu) {
+        // 点击头像显示/隐藏菜单
+        userAvatar.addEventListener('click', function(e) {
+            e.stopPropagation(); // 阻止事件冒泡
+            userMenu.classList.toggle('show');
+        });
+        
+        // 菜单内的点击不应该关闭菜单，但允许表单提交
+        userMenu.addEventListener('click', function(e) {
+            // 检查是否点击的是退出按钮或其内部元素
+            if (!e.target.closest('button[type="submit"]')) {
+                e.stopPropagation();
+            }
+        });
+        
+        // 点击其他区域关闭菜单
+        document.addEventListener('click', function(e) {
+            if (userMenu.classList.contains('show')) {
+                userMenu.classList.remove('show');
+            }
+        });
+    }
 }
 </script>
 {% endblock %} 
