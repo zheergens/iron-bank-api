@@ -6,11 +6,9 @@
 {{ super() }}
 <style>
 .form-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 24px;
-    background: #fff;
+    background: white;
     border-radius: 8px;
+    padding: 24px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -45,19 +43,24 @@
     border: 1px solid #d1d5db;
     border-radius: 6px;
     font-size: 14px;
-    color: #111827;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 }
 
 .form-input:focus {
     outline: none;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
 }
 
 .form-textarea {
     min-height: 100px;
     resize: vertical;
+}
+
+.help-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
 }
 
 .form-actions {
@@ -75,44 +78,38 @@
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 }
 
 .btn-cancel {
-    background-color: #f3f4f6;
-    color: #4b5563;
-    border: 1px solid #e5e7eb;
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
 }
 
 .btn-cancel:hover {
-    background-color: #e5e7eb;
+    background: #f3f4f6;
 }
 
 .btn-submit {
-    background-color: #3b82f6;
-    color: white;
+    background: #3b82f6;
     border: none;
+    color: white;
 }
 
 .btn-submit:hover {
-    background-color: #2563eb;
-}
-
-.help-text {
-    font-size: 12px;
-    color: #6b7280;
-    margin-top: 4px;
+    background: #2563eb;
 }
 </style>
 {% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div class="form-container">
     <div class="form-header">
         <h2 class="form-title">注册新应用</h2>
     </div>
     
-    <form method="POST">
+    <form id="appForm" method="POST">
         {{ form.csrf_token }}
         
         <div class="form-group">

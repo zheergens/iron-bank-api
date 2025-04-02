@@ -8,7 +8,8 @@ class BaseModel:
     @classmethod
     def collection(cls):
         """获取集合"""
-        return get_db()[cls.collection_name]
+        db = get_db()
+        return db[cls.collection_name]
     
     @classmethod
     def get_by_id(cls, id):

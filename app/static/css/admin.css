@@ -31,18 +31,108 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  background: #f3f4f6;
 }
 
+/* 侧边栏样式 */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background-color: var(--sidebar-bg);
+  transition: width 0.3s;
+  z-index: 1000;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header .logo {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-menu {
+  padding: 16px 0;
+}
+
+.sidebar-menu .menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.sidebar-menu .menu-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu .menu-item.active {
+  color: white;
+  background: var(--sidebar-active);
+}
+
+.sidebar-menu .icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 12px;
+  opacity: 0.75;
+  filter: brightness(0) invert(1);
+}
+
+.sidebar-menu .menu-item:hover .icon {
+  opacity: 1;
+}
+
+.sidebar-menu .menu-item.active .icon {
+  opacity: 1;
+}
+
+.sidebar-menu .menu-item span:not(.icon) {
+  font-size: 14px;
+}
+
+.sidebar.collapsed .menu-item span:not(.icon) {
+  display: none;
+}
+
+.sidebar.collapsed .logo {
+  display: none;
+}
+
+/* 主内容区域 */
 .admin-content {
-  padding-top: 0 !important;
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 24px;
+  transition: margin-left 0.3s;
   min-height: 100vh;
   background: #f3f4f6;
-  margin-left: 240px;
-  transition: margin-left 0.3s;
 }
 
 .admin-content.expanded {
-  margin-left: 80px;
+  margin-left: var(--sidebar-width-collapsed);
 }
 
 /* 调整管理头部固定定位 */
@@ -308,100 +398,6 @@
     font-size: 1.6rem;
     margin-bottom: 20px;
 } 
-
-/* 侧边栏样式 */
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-.sidebar {
-    width: 240px;
-    background-color: #001529;
-    color: rgba(255, 255, 255, 0.65);
-    transition: width 0.3s;
-    position: fixed;
-    height: 100vh;
-    left: 0;
-    top: 0;
-    z-index: 1000;
-}
-
-.sidebar.collapsed {
-    width: 80px;
-}
-
-.sidebar-header {
-    height: 64px;
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    color: white;
-    font-size: 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-header .logo {
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sidebar-menu {
-    padding: 16px 0;
-}
-
-.menu-item {
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    color: rgba(255, 255, 255, 0.65);
-    text-decoration: none;
-    transition: all 0.3s;
-}
-
-.menu-item:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.menu-item.active {
-    color: white;
-    background-color: #1890ff;
-}
-
-.menu-item i {
-    margin-right: 10px;
-    width: 16px;
-    text-align: center;
-}
-
-.menu-item span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sidebar.collapsed .menu-item span {
-    display: none;
-}
-
-.sidebar.collapsed .sidebar-header .logo {
-    display: none;
-}
-
-/* 管理界面主内容区 */
-.admin-content {
-    flex: 1;
-    margin-left: 240px;
-    padding: 24px;
-    transition: margin-left 0.3s;
-}
-
-.admin-content.expanded {
-    margin-left: 80px;
-}
 
 /* 管理界面卡片样式 */
 .admin-card {

@@ -184,6 +184,47 @@
     margin: 0;
     font-size: 14px;
 }
+
+/* 菜单树样式 */
+.menu-tree {
+    margin-top: 8px;
+}
+
+.menu-tree-list {
+    list-style: none;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.menu-tree-item {
+    margin: 8px 0;
+}
+
+.menu-tree-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.menu-tree-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+.menu-tree-path {
+    color: #6b7280;
+}
+
+.text-gray {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.text-red {
+    color: #dc2626;
+    font-size: 13px;
+}
 </style>
 {% endblock %}
 
@@ -199,7 +240,7 @@
     {% if applications %}
     <div class="app-grid">
         {% for app in applications %}
-        <div class="app-card">
+        <div class="app-card" data-app-id="{{ app.id }}">
             <div class="app-header">
                 <div class="app-info">
                     <h3 class="app-name">{{ app.name }}</h3>
@@ -216,6 +257,10 @@
                     <span class="detail-label">重定向URI</span>
                     <span class="detail-value">{{ app.redirect_uri }}</span>
                 </div>
+                <div class="detail-item">
+                    <span class="detail-label">菜单配置</span>
+                    <div class="menu-tree" id="menuTree_{{ app.id }}">加载中...</div>
+                </div>
             </div>
             <div class="app-actions">
                 <button class="action-button btn-edit" onclick="window.location.href='{{ url_for('admin.edit_app', app_id=app.id) }}'">
@@ -230,15 +275,63 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
         <p>暂无已注册的应用</p>
     </div>
     {% endif %}
 </div>
 
 <script>
+// 加载应用菜单
+function loadAppMenus(appId) {
+    fetch(`/admin/apps/${appId}/menus`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const menuTree = document.getElementById(`menuTree_${appId}`);
+                if (data.data && data.data.length > 0) {
+                    menuTree.innerHTML = renderMenuTree(data.data);
+                } else {
+                    menuTree.innerHTML = '<span class="text-gray">暂无菜单配置</span>';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const menuTree = document.getElementById(`menuTree_${appId}`);
+            menuTree.innerHTML = '<span class="text-red">加载失败</span>';
+        });
+}
+
+// 渲染菜单树
+function renderMenuTree(menus) {
+    let html = '<ul class="menu-tree-list">';
+    menus.forEach(menu => {
+        html += `
+            <li class="menu-tree-item">
+                <div class="menu-tree-content">
+                    <span class="menu-tree-name">${menu.name}</span>
+                    <span class="menu-tree-path">${menu.path}</span>
+                </div>
+                ${menu.children && menu.children.length > 0 ? renderMenuTree(menu.children) : ''}
+            </li>
+        `;
+    });
+    html += '</ul>';
+    return html;
+}
+
+// 页面加载完成后加载所有应用的菜单
+document.addEventListener('DOMContentLoaded', function() {
+    const appCards = document.querySelectorAll('.app-card');
+    appCards.forEach(card => {
+        const appId = card.getAttribute('data-app-id');
+        if (appId) {
+            loadAppMenus(appId);
+        }
+    });
+});
+
+// 删除应用
 function deleteApp(appId, appName) {
     if (confirm(`确定要删除应用"${appName}"吗？此操作不可恢复。`)) {
         fetch(`/api/apps/${appId}/delete`, {

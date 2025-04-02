@@ -7,6 +7,8 @@ import datetime
 import random
 from flask_wtf import FlaskForm
 from bson import ObjectId
+import json
+from app.models.menu import Menu
 
 admin = Blueprint('admin', __name__)
 
@@ -238,22 +240,22 @@ def register_app():
         description = request.form.get('description')
         redirect_uri = request.form.get('redirect_uri')
         
-        # 生成随机的client_id和client_secret
-        client_id = f"client_{random.randbytes(12).hex()}"
-        client_secret = random.randbytes(24).hex()
-        
-        # 创建新应用
-        app = Application(
-            name=name,
-            description=description,
-            client_id=client_id,
-            client_secret=client_secret,
-            redirect_uri=redirect_uri,
-            is_active=True
-        )
-        
         try:
+            # 生成随机的client_id和client_secret
+            client_id = f"client_{random.randbytes(12).hex()}"
+            client_secret = random.randbytes(24).hex()
+            
+            # 创建新应用
+            app = Application(
+                name=name,
+                description=description,
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=redirect_uri,
+                is_active=True
+            )
             app.save()
+            
             flash(f'应用注册成功！请保存好以下信息：\nClient ID: {client_id}\nClient Secret: {client_secret}', 'success')
             return redirect(url_for('admin.system_info'))
         except Exception as e:
@@ -266,8 +268,108 @@ def register_app():
 @login_required
 @admin_required
 def edit_app(app_id):
-    # 在此处实现编辑应用的逻辑
-    pass
+    """编辑应用"""
+    try:
+        current_app.logger.info(f"Editing app with ID: {app_id}")
+        
+        # 查找应用
+        app = Application.find_by_id(app_id)
+        current_app.logger.info(f"Found app: {app.__dict__ if app else None}")
+        
+        if not app:
+            flash('应用不存在')
+            return redirect(url_for('admin.system_info'))
+            
+        form = FlaskForm()
+        
+        if request.method == 'POST' and form.validate():
+            # 更新应用信息
+            app.name = request.form.get('name')
+            app.description = request.form.get('description')
+            app.redirect_uri = request.form.get('redirect_uri')
+            app.is_active = request.form.get('is_active') == 'true'
+            
+            # 保存更改
+            app.save()
+            
+            # 处理菜单数据
+            menus_json = request.form.get('menus', '[]')
+            menus = json.loads(menus_json)
+            
+            # 获取当前所有菜单的ID
+            existing_menu_ids = set()
+            for menu in Menu.find_by_app_id(str(app._id)):
+                existing_menu_ids.add(str(menu._id))
+            
+            # 记录处理过的菜单ID
+            processed_menu_ids = set()
+            
+            # 更新或插入菜单
+            for menu_data in menus:
+                menu_id = menu_data.get('id')
+                if menu_id and not menu_id.startswith('temp_'):
+                    # 更新现有菜单
+                    menu = Menu.find_by_id(menu_id)
+                    if menu:
+                        menu.name = menu_data['name']
+                        menu.path = menu_data['path']
+                        menu.icon = menu_data.get('icon')
+                        menu.parent_id = menu_data.get('parent_id')
+                        menu.sort_order = menu_data.get('sort_order', 0)
+                        menu.save()
+                        processed_menu_ids.add(menu_id)
+                        continue
+                
+                # 创建新菜单
+                menu = Menu(
+                    name=menu_data['name'],
+                    path=menu_data['path'],
+                    icon=menu_data.get('icon'),
+                    parent_id=menu_data.get('parent_id'),
+                    app_id=str(app._id),
+                    sort_order=menu_data.get('sort_order', 0)
+                )
+                menu.save()
+                processed_menu_ids.add(str(menu._id))
+            
+            # 删除未处理的菜单（已被移除的菜单）
+            menus_to_delete = existing_menu_ids - processed_menu_ids
+            for menu_id in menus_to_delete:
+                menu = Menu.find_by_id(menu_id)
+                if menu:
+                    menu.delete()
+            
+            flash('应用信息更新成功')
+            return redirect(url_for('admin.system_info'))
+            
+        # 获取当前菜单
+        menus = Menu.find_by_app_id(str(app._id))
+        # 将菜单对象转换为字典列表
+        menu_list = []
+        for menu in menus:
+            menu_list.append({
+                'id': str(menu._id),
+                'name': menu.name,
+                'path': menu.path,
+                'icon': menu.icon,
+                'parent_id': menu.parent_id,
+                'sort_order': menu.sort_order
+            })
+        
+        # 准备模板变量
+        template_vars = {
+            'form': form,
+            'app': app,
+            'menus': menu_list  # 传递扁平的菜单列表
+        }
+        current_app.logger.info(f"Template variables: {template_vars}")
+        
+        return render_template('admin/edit_app.html', **template_vars)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error editing app: {str(e)}")
+        flash('编辑应用时发生错误')
+        return redirect(url_for('admin.system_info'))
 
 @admin.route('/apps/<app_id>/delete', methods=['POST'])
 @login_required
@@ -374,4 +476,116 @@ def reject_request(request_id):
         
     except Exception as e:
         current_app.logger.error(f"Error rejecting request: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500 
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin.route('/apps/<app_id>/menus', methods=['GET'])
+@login_required
+@admin_required
+def get_app_menus(app_id):
+    """获取应用的菜单列表"""
+    try:
+        menus = Menu.find_by_app_id(app_id)
+        menu_tree = Menu.build_tree(menus)
+        return jsonify({
+            'success': True,
+            'data': menu_tree
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting menus: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '获取菜单失败'
+        }), 500
+
+@admin.route('/apps/<app_id>/menus', methods=['POST'])
+@login_required
+@admin_required
+def add_app_menu(app_id):
+    """添加应用菜单"""
+    try:
+        data = request.get_json()
+        menu = Menu(
+            name=data['name'],
+            path=data['path'],
+            icon=data.get('icon'),
+            parent_id=data.get('parent_id'),
+            app_id=app_id,
+            sort_order=data.get('sort_order', 0)
+        )
+        menu.save()
+        
+        return jsonify({
+            'success': True,
+            'message': '添加菜单成功',
+            'data': {
+                'id': str(menu._id),
+                'name': menu.name,
+                'path': menu.path,
+                'icon': menu.icon,
+                'parent_id': menu.parent_id,
+                'sort_order': menu.sort_order
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error adding menu: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '添加菜单失败'
+        }), 500
+
+@admin.route('/apps/<app_id>/menus/<menu_id>', methods=['PUT'])
+@login_required
+@admin_required
+def update_app_menu(app_id, menu_id):
+    """更新应用菜单"""
+    try:
+        menu = Menu.find_by_id(menu_id)
+        if not menu or str(menu.app_id) != app_id:
+            return jsonify({
+                'success': False,
+                'message': '菜单不存在'
+            }), 404
+        
+        data = request.get_json()
+        menu.name = data.get('name', menu.name)
+        menu.path = data.get('path', menu.path)
+        menu.icon = data.get('icon', menu.icon)
+        menu.parent_id = data.get('parent_id', menu.parent_id)
+        menu.sort_order = data.get('sort_order', menu.sort_order)
+        menu.save()
+        
+        return jsonify({
+            'success': True,
+            'message': '更新菜单成功'
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error updating menu: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '更新菜单失败'
+        }), 500
+
+@admin.route('/apps/<app_id>/menus/<menu_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_app_menu(app_id, menu_id):
+    """删除应用菜单"""
+    try:
+        menu = Menu.find_by_id(menu_id)
+        if not menu or str(menu.app_id) != app_id:
+            return jsonify({
+                'success': False,
+                'message': '菜单不存在'
+            }), 404
+        
+        menu.delete()
+        return jsonify({
+            'success': True,
+            'message': '删除菜单成功'
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error deleting menu: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '删除菜单失败'
+        }), 500 

@@ -89,6 +89,13 @@ class Application(BaseModel):
             app.updated_at = data['updated_at']
         return app
 
+    @classmethod
+    def collection(cls):
+        """获取数据库集合"""
+        from app.extensions import get_db
+        db = get_db()
+        return db[cls.collection_name]
+
 class ApplicationRequest(BaseModel):
     """应用请求模型，表示用户对应用的访问请求和授权关系"""
     collection_name = 'oauth_application_requests'
