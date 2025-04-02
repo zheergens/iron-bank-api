@@ -10,24 +10,43 @@ class AuthService:
         """用户登录
         
         Args:
-            username: 用户名
+            username: 用户名或邮箱
             password: 密码
             remember: 是否记住用户
             
         Returns:
             tuple: (user, error_message)
         """
+        # 先尝试用用户名查找
         user = User.find_by_username(username)
-        
-        if not user or not user.check_password(password):
+        if not user:
+            # 如果用户名找不到，尝试用邮箱查找
+            user = User.find_by_email(username)
+            
+        if not user:
             return None, '用户名或密码错误'
+            
+        # 检查密码哈希是否存在
+        if not user.password_hash:
+            return None, '账号异常，请联系管理员'
+            
+        # 检查密码是否正确
+        try:
+            if not user.check_password(password):
+                return None, '用户名或密码错误'
+        except Exception as e:
+            return None, '账号异常，请联系管理员'
             
         # 检查用户是否被禁用
         if not user.is_active:
             return None, '账号已被禁用，请联系管理员'
         
         # 更新最后登录时间
-        user.update_last_login()
+        try:
+            user.update_last_login()
+        except Exception as e:
+            # 登录时间更新失败不影响登录
+            pass
         
         # 登录用户
         login_user(user, remember=remember)
@@ -70,8 +89,8 @@ class AuthService:
                 return None, '手机号已被使用'
         
         # 创建用户
-        user = User.create_user(username, email, password, phone)
-        if not user:
-            return None, '注册失败，请稍后重试'
+        user, error = User.create_user(username, email, password, phone)
+        if error:
+            return None, error
         
         return user, None 

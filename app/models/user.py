@@ -99,17 +99,16 @@ class User(UserMixin, BaseModel):
         if phone and cls.find_by_phone(phone):
             return None, '手机号已被注册'
         
-        # 创建新用户
-        user = cls(
-            username=username,
-            email=email,
-            password=password,
-            phone=phone,
-            is_admin=is_admin
-        )
-        user.permissions = [role]  # 将role作为权限添加
-        
         try:
+            # 创建新用户
+            user = cls(
+                username=username,
+                email=email,
+                password=password,  # 这里会在 __init__ 中处理密码哈希
+                phone=phone,
+                is_admin=is_admin
+            )
+            user.permissions = [role]  # 设置用户角色
             user.save()
             return user, None
         except Exception as e:
@@ -199,22 +198,23 @@ class User(UserMixin, BaseModel):
     @classmethod
     def from_dict(cls, data):
         """从字典创建对象"""
-        if data is None:
+        if not data:
             return None
-        # 将 is_active 转换为 _is_active
-        if 'is_active' in data:
-            data['_is_active'] = data.pop('is_active')
+            
         user = cls()
         user._id = data.get('_id')
         user.username = data.get('username')
         user.email = data.get('email')
         user.phone = data.get('phone')
+        user.password_hash = data.get('password_hash')
         user.is_admin = data.get('is_admin', False)
-        user.is_active = data.get('_is_active', True)
+        user.is_active = data.get('is_active', True)
+        user.permissions = data.get('permissions', ['user'])
         user.created_at = data.get('created_at')
         user.updated_at = data.get('updated_at')
         user.last_login = data.get('last_login')
         user.menu_permissions = data.get('menu_permissions', {})
+        
         return user
 
     def update_menu_permissions(self, app_id, menu_ids):
