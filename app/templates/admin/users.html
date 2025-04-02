@@ -1,15 +1,100 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}用户管理{% endblock %}
+{% block title %}用户管理 - 管理系统{% endblock %}
 
-{% block head_css %}
+{% block styles %}
 {{ super() }}
 <style>
-.content-card {
-    background: #fff;
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
     border-radius: 8px;
+    overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 24px;
+}
+
+.user-table th,
+.user-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.user-table th {
+    background: #f9fafb;
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+}
+
+.user-table tr:last-child td {
+    border-bottom: none;
+}
+
+.user-table td {
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.role-admin {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.role-user {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+    margin-right: 4px;
+}
+
+.btn-edit {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.btn-delete {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.btn-auth {
+    background: #ecfdf5;
+    color: #047857;
 }
 
 .header {
@@ -19,394 +104,385 @@
     margin-bottom: 24px;
 }
 
-.header h1 {
-    font-size: 20px;
-    color: #1f2937;
-    margin: 0;
-    font-weight: 500;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.data-table th {
-    background: #fafafa;
-    padding: 12px;
-    text-align: left;
-    font-weight: 500;
-    color: #595959;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 13px;
-}
-
-.data-table td {
-    padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
-    color: #262626;
-    font-size: 13px;
-    transition: background 0.2s;
-}
-
-.data-table tr:hover td {
-    background: #fafafa;
-}
-
-.badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0 8px;
-    height: 22px;
-    border-radius: 11px;
-    font-size: 12px;
-    font-weight: normal;
-    line-height: 20px;
-    box-sizing: border-box;
-    border: 1px solid transparent;
-}
-
-.badge-primary {
-    background: #e6f7ff;
-    border-color: #91d5ff;
-    color: #1890ff;
-}
-
-.badge-default {
-    background: #f5f5f5;
-    border-color: #d9d9d9;
-    color: #595959;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.btn-add {
     padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
     border-radius: 6px;
-    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    border: none;
 }
 
-.btn-primary {
-    background: #1890ff;
-    color: white;
+.btn-add:hover {
+    background: #2563eb;
 }
 
-.btn-primary:hover {
-    background: #40a9ff;
+/* 模态窗样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
 }
 
-.action-btn {
-    width: 32px;
-    height: 32px;
+.modal-content {
+    position: relative;
+    background-color: #fff;
+    margin: 50px auto;
     padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: transparent;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    animation: modalFadeIn 0.3s ease;
 }
 
-.action-btn svg {
-    width: 16px;
-    height: 16px;
-    transition: all 0.2s;
-}
-
-.action-btn.edit {
-    color: #595959;
-}
-
-.action-btn.edit:hover {
-    color: #1890ff;
-    background: #e6f7ff;
-    border-color: #91d5ff;
-}
-
-.action-btn.delete {
-    color: #595959;
-}
-
-.action-btn.delete:hover {
-    color: #ff4d4f;
-    background: #fff1f0;
-    border-color: #ffa39e;
-}
-
-.icon-wrapper {
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+}
+
+.modal-body {
+    padding: 24px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
 {% endblock %}
 
 {% block admin_content %}
-<div class="content-card">
-    <div class="header">
-        <h1>用户管理</h1>
-        <button class="btn btn-primary" onclick="showAddUserModal()">
-            <i class="fas fa-plus"></i>
-            添加用户
-        </button>
-    </div>
-
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>用户名</th>
-                    <th>邮箱</th>
-                    <th>手机号</th>
-                    <th>角色</th>
-                    <th>状态</th>
-                    <th>最后登录</th>
-                    <th style="width: 100px;">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.phone or '未设置' }}</td>
-                    <td>
-                        <span class="badge badge-{{ 'primary' if user.is_admin else 'default' }}">
-                            {{ 'admin' if user.is_admin else 'user' }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ 'success' if user.is_active else 'danger' }}">
-                            {{ '活跃' if user.is_active else '被禁用' }}
-                        </span>
-                    </td>
-                    <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else '从未登录' }}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="action-btn edit" onclick="showEditUserModal('{{ user._id }}', '{{ user.username }}', '{{ user.email }}', '{{ user.phone or '' }}')">
-                                <div class="icon-wrapper">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </div>
-                            </button>
-                            {% if not user.is_admin %}
-                            <button class="action-btn delete" onclick="confirmDeleteUser('{{ user._id }}', '{{ user.username }}')">
-                                <div class="icon-wrapper">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 6h18"></path>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </div>
-                            </button>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="header">
+    <h1>用户管理</h1>
+    <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn-add" onclick="window.location.href='{{ url_for('admin.new_user') }}'">添加用户</button>
 </div>
 
-<!-- 添加用户模态框 -->
-<div id="addUserModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>添加用户</h2>
-            <button class="close-button" onclick="closeAddUserModal()">&times;</button>
-        </div>
-        <form id="addUserForm" method="post" action="{{ url_for('admin.new_user') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">邮箱</label>
-                    <input type="email" id="email" name="email" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="phone">手机号</label>
-                    <input type="text" id="phone" name="phone" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="role">角色</label>
-                    <select id="role" name="role" class="form-input">
-                        <option value="user">普通用户</option>
-                        <option value="admin">管理员</option>
-                    </select>
-                </div>
-                <p class="text-muted">注意：用户的初始密码将设置为：用户名 + 123</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">取消</button>
-                <button type="submit" class="btn btn-primary">确认添加</button>
-            </div>
-        </form>
-    </div>
-</div>
+<table class="user-table">
+    <thead>
+        <tr>
+            <th>用户名</th>
+            <th>邮箱</th>
+            <th>手机号</th>
+            <th>角色</th>
+            <th>状态</th>
+            <th>注册时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phone or '未设置' }}</td>
+            <td>
+                <span class="role-badge {% if user.is_admin %}role-admin{% else %}role-user{% endif %}">
+                    {{ '管理员' if user.is_admin else '普通用户' }}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                    {{ '活跃' if user.is_active else '禁用' }}
+                </span>
+            </td>
+            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '未知' }}</td>
+            <td>
+                <button class="action-btn btn-edit" onclick="window.location.href='{{ url_for('admin.edit_user', user_id=user.id) }}'">编辑</button>
+                {% if not user.is_admin %}
+                <button class="action-btn btn-delete" onclick="deleteUser('{{ user.id }}', '{{ user.username }}')">删除</button>
+                {% endif %}
+                <button class="action-btn btn-auth" onclick="showAuthDialog('{{ user.id }}', '{{ user.username }}')">授权</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-<!-- 编辑用户模态框 -->
-<div id="editUserModal" class="modal">
+<!-- 授权模态窗 -->
+<div id="authModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>编辑用户</h2>
-            <button class="close-button" onclick="closeEditUserModal()">&times;</button>
-        </div>
-        <form id="editUserForm" method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-body">
-                <input type="hidden" id="editUserId" name="user_id">
-                <div class="form-group">
-                    <label for="editUsername">用户名</label>
-                    <input type="text" id="editUsername" name="username" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="editEmail">邮箱</label>
-                    <input type="email" id="editEmail" name="email" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="editPhone">手机号</label>
-                    <input type="text" id="editPhone" name="phone" class="form-input">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">取消</button>
-                <button type="submit" class="btn btn-primary">保存</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- 删除确认对话框 -->
-<div id="deleteConfirmModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>确认删除</h2>
-            <button class="close-button" onclick="closeDeleteConfirmModal()">&times;</button>
+            <h3 class="modal-title">平台授权 - <span id="authUserName"></span></h3>
+            <button type="button" class="modal-close" onclick="hideAuthModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <p>确定要删除用户 <span id="deleteUserName"></span> 吗？</p>
-            <p class="text-warning">注意：此操作将禁用该用户，用户将无法登录系统。</p>
+            <div class="auth-form-group">
+                <label class="auth-form-label">选择平台</label>
+                <select id="appSelect" class="auth-form-select" onchange="loadAppMenus()">
+                    <option value="">请选择平台</option>
+                </select>
+            </div>
+            <div class="menu-tree-container">
+                <div class="menu-tree-header">
+                    <label class="select-all-label">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        <span>全选</span>
+                    </label>
+                </div>
+                <div id="menuTree" class="menu-tree">
+                    <!-- 菜单树将通过JavaScript动态渲染 -->
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
-            <form id="deleteUserForm" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
-                <button type="submit" class="btn btn-danger">确认删除</button>
-            </form>
+            <button type="button" class="auth-btn auth-btn-cancel" onclick="hideAuthModal()">取消</button>
+            <button type="button" class="auth-btn auth-btn-save" onclick="saveAuth()">保存</button>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
 <script>
-// 添加用户相关函数
-function showAddUserModal() {
-    document.getElementById('addUserModal').style.display = 'block';
+let currentUserId = null;
+let currentUserMenus = {};
+let allMenuIds = new Set();
+
+// 显示授权模态窗
+function showAuthDialog(userId, username) {
+    currentUserId = userId;
+    document.getElementById('authUserName').textContent = username;
+    document.getElementById('authModal').style.display = 'block';
+    document.getElementById('selectAll').checked = false;
+    loadApps();
+    loadUserAuth();
 }
 
-function closeAddUserModal() {
-    document.getElementById('addUserModal').style.display = 'none';
+// 隐藏授权模态窗
+function hideAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+    document.getElementById('appSelect').value = '';
+    document.getElementById('menuTree').innerHTML = '';
+    document.getElementById('selectAll').checked = false;
+    currentUserId = null;
+    currentUserMenus = {};
+    allMenuIds.clear();
 }
 
-// 编辑用户相关函数
-function showEditUserModal(userId, username, email, phone) {
-    document.getElementById('editUserId').value = userId;
-    document.getElementById('editUsername').value = username;
-    document.getElementById('editEmail').value = email;
-    document.getElementById('editPhone').value = phone;
-    
-    const form = document.getElementById('editUserForm');
-    form.action = `/admin/users/${userId}/edit`;
-    
-    document.getElementById('editUserModal').style.display = 'block';
-}
-
-function closeEditUserModal() {
-    document.getElementById('editUserModal').style.display = 'none';
-}
-
-// 删除用户相关函数
-function confirmDeleteUser(userId, username) {
-    document.getElementById('deleteUserName').textContent = username;
-    const form = document.getElementById('deleteUserForm');
-    form.action = `/admin/users/delete/${userId}`;
-    document.getElementById('deleteConfirmModal').style.display = 'block';
-}
-
-function closeDeleteConfirmModal() {
-    document.getElementById('deleteConfirmModal').style.display = 'none';
-}
-
-// 关闭模态框的通用函数
+// 点击模态窗外部时关闭
 window.onclick = function(event) {
-    const addModal = document.getElementById('addUserModal');
-    const editModal = document.getElementById('editUserModal');
-    const deleteModal = document.getElementById('deleteConfirmModal');
+    const modal = document.getElementById('authModal');
+    if (event.target == modal) {
+        hideAuthModal();
+    }
+}
+
+// 全选/取消全选
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const appId = document.getElementById('appSelect').value;
+    const checkboxes = document.querySelectorAll('.menu-checkbox');
     
-    if (event.target == addModal) {
-        addModal.style.display = 'none';
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+        toggleMenuAuth(checkbox, appId, checkbox.dataset.menuId);
+    });
+}
+
+// 检查是否所有菜单都被选中
+function checkAllSelected() {
+    const checkboxes = document.querySelectorAll('.menu-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+    selectAll.checked = allChecked;
+}
+
+// 加载应用列表
+function loadApps() {
+    fetch('/admin/apps')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const appSelect = document.getElementById('appSelect');
+                appSelect.innerHTML = '<option value="">请选择平台</option>';
+                data.data.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app.id;
+                    option.textContent = app.name;
+                    appSelect.appendChild(option);
+                });
+            }
+        });
+}
+
+// 加载用户的授权信息
+function loadUserAuth() {
+    fetch(`/admin/users/${currentUserId}/auth`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentUserMenus = data.data;
+            }
+        });
+}
+
+// 加载应用的菜单
+function loadAppMenus() {
+    const appId = document.getElementById('appSelect').value;
+    if (!appId) {
+        document.getElementById('menuTree').innerHTML = '';
+        return;
     }
-    if (event.target == editModal) {
-        editModal.style.display = 'none';
+    
+    fetch(`/admin/apps/${appId}/menus`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const menuTree = document.getElementById('menuTree');
+                menuTree.innerHTML = '';
+                renderMenuTree(data.data, menuTree, appId);
+            }
+        });
+}
+
+// 渲染菜单树
+function renderMenuTree(menus, container, appId) {
+    allMenuIds.clear();
+    menus.forEach(menu => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'menu-item';
+        
+        const menuContent = document.createElement('div');
+        menuContent.className = 'menu-item-content';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'menu-checkbox';
+        checkbox.dataset.menuId = menu.id;
+        checkbox.checked = isMenuAuthorized(appId, menu.id);
+        checkbox.onchange = () => {
+            toggleMenuAuth(checkbox, appId, menu.id);
+            checkAllSelected();
+        };
+        
+        allMenuIds.add(menu.id);
+        
+        const label = document.createElement('label');
+        label.textContent = menu.name;
+        
+        menuContent.appendChild(checkbox);
+        menuContent.appendChild(label);
+        menuItem.appendChild(menuContent);
+        
+        if (menu.children && menu.children.length > 0) {
+            const childContainer = document.createElement('div');
+            childContainer.className = 'menu-children';
+            renderMenuTree(menu.children, childContainer, appId);
+            menuItem.appendChild(childContainer);
+        }
+        
+        container.appendChild(menuItem);
+    });
+    
+    // 初始检查是否全选
+    checkAllSelected();
+}
+
+// 检查菜单是否已授权
+function isMenuAuthorized(appId, menuId) {
+    return currentUserMenus[appId] && currentUserMenus[appId].includes(menuId);
+}
+
+// 切换菜单授权状态
+function toggleMenuAuth(checkbox, appId, menuId) {
+    if (!currentUserMenus[appId]) {
+        currentUserMenus[appId] = [];
     }
-    if (event.target == deleteModal) {
-        deleteModal.style.display = 'none';
+    
+    const index = currentUserMenus[appId].indexOf(menuId);
+    if (checkbox.checked && index === -1) {
+        currentUserMenus[appId].push(menuId);
+    } else if (!checkbox.checked && index !== -1) {
+        currentUserMenus[appId].splice(index, 1);
+    }
+}
+
+// 保存授权
+function saveAuth() {
+    const csrfToken = document.getElementById('csrf_token').value;
+    fetch(`/admin/users/${currentUserId}/auth`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            menus: currentUserMenus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('授权保存成功');
+            hideAuthModal();
+        } else {
+            alert('授权保存失败：' + data.message);
+        }
+    });
+}
+
+// 删除用户
+function deleteUser(userId, username) {
+    if (confirm(`确定要删除用户 ${username} 吗？`)) {
+        const csrfToken = document.getElementById('csrf_token').value;
+        fetch(`/admin/users/delete/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        });
     }
 }
 </script>
-
-<style>
-.toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 4px;
-    color: white;
-    z-index: 1000;
-    animation: slideIn 0.3s ease-in-out;
-}
-
-.toast.success {
-    background-color: #4CAF50;
-}
-
-.toast.error {
-    background-color: #f44336;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-</style>
 {% endblock %} 

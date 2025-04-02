@@ -3,21 +3,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from .base import BaseModel
 from bson import ObjectId
+from app.extensions import get_db
 
 class User(UserMixin, BaseModel):
     """用户模型"""
     collection_name = 'users'
     
-    def __init__(self, username=None, password=None, email=None, phone=None, is_admin=False):
+    def __init__(self, username=None, email=None, password=None, phone=None, 
+                 is_admin=False, is_active=True, created_at=None, last_login=None,
+                 menu_permissions=None):
+        self._id = None
         self.username = username
         self.email = email
+        self.password_hash = generate_password_hash(password) if password else None
         self.phone = phone
         self.is_admin = is_admin
-        self.is_active = True  # 添加 is_active 字段，默认为 True
-        self.created_at = datetime.utcnow().replace(tzinfo=None)
-        self.updated_at = self.created_at
-        if password:
-            self.set_password(password)
+        self.is_active = is_active
+        self.created_at = created_at or datetime.utcnow()
+        self.last_login = last_login
+        self.menu_permissions = menu_permissions or {}  # 格式: {app_id: [menu_id1, menu_id2, ...]}
     
     def set_password(self, password):
         """设置密码"""
@@ -120,13 +124,13 @@ class User(UserMixin, BaseModel):
                 return False, '手机号已被其他用户使用'
             self.phone = phone
         
-        self.updated_at = datetime.utcnow().replace(tzinfo=None)
+        self.updated_at = datetime.utcnow()
         self.save()
         return True, None
     
     def update_last_login(self):
         """更新最后登录时间"""
-        self.last_login = datetime.utcnow().replace(tzinfo=None)
+        self.last_login = datetime.utcnow()
         self.save()
         
     def has_permission(self, permission):
@@ -157,9 +161,10 @@ class User(UserMixin, BaseModel):
             'is_active': getattr(self, '_is_active', True),
             'password_hash': getattr(self, 'password_hash', None),
             'permissions': getattr(self, 'permissions', ['user']),
-            'created_at': getattr(self, 'created_at', datetime.utcnow().replace(tzinfo=None)),
-            'updated_at': datetime.utcnow().replace(tzinfo=None),
-            'last_login': getattr(self, 'last_login', None)
+            'created_at': getattr(self, 'created_at', datetime.utcnow()),
+            'updated_at': datetime.utcnow(),
+            'last_login': getattr(self, 'last_login', None),
+            'menu_permissions': self.menu_permissions
         }
         
         if hasattr(self, '_id') and self._id:
@@ -177,6 +182,7 @@ class User(UserMixin, BaseModel):
     def to_dict(self):
         """将对象转换为字典"""
         return {
+            '_id': self._id,
             'username': self.username,
             'email': self.email,
             'phone': self.phone,
@@ -186,7 +192,8 @@ class User(UserMixin, BaseModel):
             'permissions': getattr(self, 'permissions', ['user']),
             'created_at': getattr(self, 'created_at', None),
             'updated_at': getattr(self, 'updated_at', None),
-            'last_login': getattr(self, 'last_login', None)
+            'last_login': getattr(self, 'last_login', None),
+            'menu_permissions': self.menu_permissions
         }
     
     @classmethod
@@ -197,4 +204,56 @@ class User(UserMixin, BaseModel):
         # 将 is_active 转换为 _is_active
         if 'is_active' in data:
             data['_is_active'] = data.pop('is_active')
-        return super().from_dict(data) 
+        user = cls()
+        user._id = data.get('_id')
+        user.username = data.get('username')
+        user.email = data.get('email')
+        user.phone = data.get('phone')
+        user.is_admin = data.get('is_admin', False)
+        user.is_active = data.get('_is_active', True)
+        user.created_at = data.get('created_at')
+        user.updated_at = data.get('updated_at')
+        user.last_login = data.get('last_login')
+        user.menu_permissions = data.get('menu_permissions', {})
+        return user
+
+    def update_menu_permissions(self, app_id, menu_ids):
+        """更新用户对特定应用的菜单权限"""
+        if menu_ids:
+            self.menu_permissions[app_id] = menu_ids
+        else:
+            self.menu_permissions.pop(app_id, None)
+        self.save()
+
+    def get_menu_permissions(self, app_id):
+        """获取用户对特定应用的菜单权限"""
+        return self.menu_permissions.get(app_id, [])
+
+    def has_menu_permission(self, app_id, menu_id):
+        """检查用户是否有权限访问特定菜单"""
+        return menu_id in self.menu_permissions.get(app_id, [])
+
+    @classmethod
+    def collection(cls):
+        return get_db()[cls.collection_name]
+
+    @classmethod
+    def create_user(cls, username, email, password, phone=None, is_admin=False):
+        # 检查用户名是否已存在
+        if cls.find_by_username(username):
+            return None, "用户名已存在"
+        
+        # 检查邮箱是否已存在
+        if cls.find_by_email(email):
+            return None, "邮箱已存在"
+        
+        # 创建新用户
+        user = cls(
+            username=username,
+            email=email,
+            password=password,
+            phone=phone,
+            is_admin=is_admin
+        )
+        user.save()
+        return user, None 

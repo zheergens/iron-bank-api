@@ -588,4 +588,149 @@ def delete_app_menu(app_id, menu_id):
         return jsonify({
             'success': False,
             'message': '删除菜单失败'
+        }), 500
+
+@admin.route('/apps')
+@login_required
+@admin_required
+def get_apps():
+    """获取所有应用列表"""
+    try:
+        apps = Application.get_all_active()
+        app_list = [{
+            'id': str(app._id),
+            'name': app.name
+        } for app in apps]
+        return jsonify({
+            'success': True,
+            'data': app_list
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting apps: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '获取应用列表失败'
+        }), 500
+
+@admin.route('/users/<user_id>/auth', methods=['GET'])
+@login_required
+@admin_required
+def get_user_auth(user_id):
+    """获取用户的授权信息"""
+    try:
+        # 验证用户ID
+        if not ObjectId.is_valid(user_id):
+            return jsonify({
+                'success': False,
+                'message': '无效的用户ID'
+            }), 400
+
+        # 获取用户
+        user = User.find_by_id(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': '用户不存在'
+            }), 404
+            
+        return jsonify({
+            'success': True,
+            'data': user.menu_permissions
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting user auth: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '获取用户授权信息失败'
+        }), 500
+
+@admin.route('/users/<user_id>/auth', methods=['POST'])
+@login_required
+@admin_required
+def update_user_auth(user_id):
+    """更新用户的授权信息"""
+    try:
+        # 验证用户ID
+        if not ObjectId.is_valid(user_id):
+            return jsonify({
+                'success': False,
+                'message': '无效的用户ID'
+            }), 400
+
+        # 获取用户
+        user = User.find_by_id(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': '用户不存在'
+            }), 404
+            
+        # 获取请求数据
+        data = request.get_json()
+        if not data or 'menus' not in data:
+            return jsonify({
+                'success': False,
+                'message': '无效的请求数据'
+            }), 400
+            
+        menu_permissions = data['menus']
+        
+        # 验证应用和菜单ID的有效性
+        for app_id, menu_ids in menu_permissions.items():
+            # 验证应用ID
+            if not ObjectId.is_valid(app_id):
+                return jsonify({
+                    'success': False,
+                    'message': f'无效的应用ID: {app_id}'
+                }), 400
+                
+            # 验证应用是否存在
+            app = Application.find_by_id(app_id)
+            if not app:
+                return jsonify({
+                    'success': False,
+                    'message': f'应用不存在: {app_id}'
+                }), 400
+                
+            # 验证菜单ID列表
+            if not isinstance(menu_ids, list):
+                return jsonify({
+                    'success': False,
+                    'message': f'应用 {app_id} 的菜单数据格式无效'
+                }), 400
+                
+            # 验证每个菜单ID
+            for menu_id in menu_ids:
+                if not ObjectId.is_valid(menu_id):
+                    return jsonify({
+                        'success': False,
+                        'message': f'无效的菜单ID: {menu_id}'
+                    }), 400
+                    
+                # 验证菜单是否存在
+                menu = Menu.find_by_id(menu_id)
+                if not menu:
+                    return jsonify({
+                        'success': False,
+                        'message': f'菜单不存在: {menu_id}'
+                    }), 400
+        
+        # 更新用户的菜单权限
+        user.menu_permissions = menu_permissions
+        user.save()
+        
+        # 记录操作日志
+        current_app.logger.info(f'Updated menu permissions for user {user.username} (ID: {user_id})')
+        
+        return jsonify({
+            'success': True,
+            'message': '授权更新成功'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error updating user auth: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '更新用户授权失败'
         }), 500 
