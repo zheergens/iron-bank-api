@@ -117,38 +117,26 @@ def edit_user(user_id):
         flash('编辑用户时发生错误')
         return redirect(url_for('admin.users'))
 
-@admin.route('/users/<user_id>/delete', methods=['POST'])
+@admin.route('/users/delete/<user_id>', methods=['POST'])
 @login_required
 @admin_required
 def delete_user(user_id):
-    """禁用用户"""
-    try:
-        # 先查找用户
-        user = User.find_by_id(user_id)
-        if not user:
-            return jsonify({'success': False, 'message': '用户不存在'}), 404
-            
-        # 不允许禁用管理员用户
-        if user.is_admin:
-            return jsonify({'success': False, 'message': '不能禁用管理员用户'}), 400
-            
-        # 更新用户状态为禁用
-        result = User.collection().update_one(
-            {'_id': ObjectId(user_id)},
-            {'$set': {'is_active': False}}
-        )
-        
-        if result.modified_count > 0:
-            return jsonify({
-                'success': True,
-                'message': f'用户 {user.username} 已成功禁用'
-            })
-        else:
-            return jsonify({'success': False, 'message': '禁用用户失败'}), 500
-            
-    except Exception as e:
-        current_app.logger.error(f"Error disabling user: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+    """删除用户（将用户状态设置为非活跃）"""
+    user = User.find_by_id(user_id)
+    if not user:
+        flash('用户不存在', 'error')
+        return redirect(url_for('admin.users'))
+    
+    if user.is_admin:
+        flash('不能删除管理员用户', 'error')
+        return redirect(url_for('admin.users'))
+    
+    # 将用户状态设置为非活跃
+    user.is_active = False
+    user.save()
+    
+    flash('用户已禁用', 'success')
+    return redirect(url_for('admin.users'))
 
 @admin.route('/system_info')
 @login_required

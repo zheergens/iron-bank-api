@@ -110,25 +110,14 @@
                 <span class="icon icon-user"></span>
                 <span>个人中心</span>
             </a>
-            <a href="{{ url_for('user.app_permissions') }}" class="menu-item {% if request.endpoint == 'user.app_permissions' %}active{% endif %}">
-                <span class="icon icon-key"></span>
-                <span>权限申请</span>
-            </a>
             {% if current_user.is_admin %}
             <a href="{{ url_for('admin.users') }}" class="menu-item {% if request.endpoint == 'admin.users' %}active{% endif %}">
                 <span class="icon icon-users"></span>
                 <span>用户管理</span>
             </a>
-            <a href="{{ url_for('admin.app_requests') }}" class="menu-item {% if request.endpoint == 'admin.app_requests' %}active{% endif %}">
-                <span class="icon icon-tasks"></span>
-                <span>权限审核</span>
-                {% if stats and stats.pending_requests > 0 %}
-                <span class="badge badge-warning">{{ stats.pending_requests }}</span>
-                {% endif %}
-            </a>
             <a href="{{ url_for('admin.system_info') }}" class="menu-item {% if request.endpoint == 'admin.system_info' %}active{% endif %}">
                 <span class="icon icon-cog"></span>
-                <span>系统信息</span>
+                <span>平台管理</span>
             </a>
             {% endif %}
         </div>

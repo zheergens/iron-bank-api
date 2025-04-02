@@ -21,6 +21,10 @@ class AuthService:
         
         if not user or not user.check_password(password):
             return None, '用户名或密码错误'
+            
+        # 检查用户是否被禁用
+        if not user.is_active:
+            return None, '账号已被禁用，请联系管理员'
         
         # 更新最后登录时间
         user.update_last_login()

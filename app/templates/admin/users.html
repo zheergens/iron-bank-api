@@ -1,6 +1,6 @@
 {% extends "layouts/admin.html" %}
 
-{% block title %}用户管理 - 管理系统{% endblock %}
+{% block title %}用户管理{% endblock %}
 
 {% block head_css %}
 {{ super() }}
@@ -160,13 +160,10 @@
 <div class="content-card">
     <div class="header">
         <h1>用户管理</h1>
-        <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px;">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+        <button class="btn btn-primary" onclick="showAddUserModal()">
+            <i class="fas fa-plus"></i>
             添加用户
-        </a>
+        </button>
     </div>
 
     <div class="table-container">
@@ -189,17 +186,19 @@
                     <td>{{ user.email }}</td>
                     <td>{{ user.phone or '未设置' }}</td>
                     <td>
-                        <span class="badge badge-primary">{{ user.permissions[0] if user.permissions else 'user' }}</span>
-                    </td>
-                    <td>
-                        <span class="badge {% if user.is_active %}badge-primary{% else %}badge-default{% endif %}">
-                            {{ '活跃' if user.is_active else '禁用' }}
+                        <span class="badge badge-{{ 'primary' if user.is_admin else 'default' }}">
+                            {{ 'admin' if user.is_admin else 'user' }}
                         </span>
                     </td>
-                    <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '从未登录' }}</td>
+                    <td>
+                        <span class="badge badge-{{ 'success' if user.is_active else 'danger' }}">
+                            {{ '活跃' if user.is_active else '被禁用' }}
+                        </span>
+                    </td>
+                    <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else '从未登录' }}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="action-btn edit" title="编辑" onclick="location.href='{{ url_for('admin.edit_user', user_id=user.id) }}'">
+                            <button class="action-btn edit" onclick="showEditUserModal('{{ user._id }}', '{{ user.username }}', '{{ user.email }}', '{{ user.phone or '' }}')">
                                 <div class="icon-wrapper">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -208,11 +207,12 @@
                                 </div>
                             </button>
                             {% if not user.is_admin %}
-                            <button class="action-btn delete" title="禁用" onclick="deleteUser('{{ user.id }}')">
+                            <button class="action-btn delete" onclick="confirmDeleteUser('{{ user._id }}', '{{ user.username }}')">
                                 <div class="icon-wrapper">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                     </svg>
                                 </div>
                             </button>
@@ -226,16 +226,94 @@
     </div>
 </div>
 
-<!-- 删除确认对话框 -->
-<div id="deleteModal" class="modal" style="display: none;">
+<!-- 添加用户模态框 -->
+<div id="addUserModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>确认删除</h3>
+            <h2>添加用户</h2>
+            <button class="close-button" onclick="closeAddUserModal()">&times;</button>
         </div>
-        <p>确定要删除这个用户吗？此操作无法撤销。</p>
+        <form id="addUserForm" method="post" action="{{ url_for('admin.new_user') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" name="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">手机号</label>
+                    <input type="text" id="phone" name="phone" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="role">角色</label>
+                    <select id="role" name="role" class="form-input">
+                        <option value="user">普通用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <p class="text-muted">注意：用户的初始密码将设置为：用户名 + 123</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">取消</button>
+                <button type="submit" class="btn btn-primary">确认添加</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>编辑用户</h2>
+            <button class="close-button" onclick="closeEditUserModal()">&times;</button>
+        </div>
+        <form id="editUserForm" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+                <input type="hidden" id="editUserId" name="user_id">
+                <div class="form-group">
+                    <label for="editUsername">用户名</label>
+                    <input type="text" id="editUsername" name="username" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">邮箱</label>
+                    <input type="email" id="editEmail" name="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPhone">手机号</label>
+                    <input type="text" id="editPhone" name="phone" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">取消</button>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 删除确认对话框 -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>确认删除</h2>
+            <button class="close-button" onclick="closeDeleteConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>确定要删除用户 <span id="deleteUserName"></span> 吗？</p>
+            <p class="text-warning">注意：此操作将禁用该用户，用户将无法登录系统。</p>
+        </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">删除</button>
+            <form id="deleteUserForm" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
+                <button type="submit" class="btn btn-danger">确认删除</button>
+            </form>
         </div>
     </div>
 </div>
@@ -244,70 +322,59 @@
 {% block scripts %}
 {{ super() }}
 <script>
-let userIdToDelete = null;
-
-function deleteUser(userId) {
-    userIdToDelete = userId;
-    document.getElementById('deleteModal').style.display = 'flex';
+// 添加用户相关函数
+function showAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'block';
 }
 
-function closeDeleteModal() {
-    document.getElementById('deleteModal').style.display = 'none';
-    userIdToDelete = null;
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
 }
 
-function confirmDelete() {
-    if (userIdToDelete) {
-        const formData = new FormData();
-        formData.append('csrf_token', '{{ csrf_token() }}');
-        
-        fetch(`/admin/users/${userIdToDelete}/delete`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 设置成功消息到 localStorage
-                localStorage.setItem('flash_message', data.message || '用户已禁用');
-                localStorage.setItem('flash_type', 'success');
-                // 重定向到用户管理页面
-                window.location.href = "{{ url_for('admin.users') }}";
-            } else {
-                // 显示错误消息
-                showToast(data.message || '禁用失败', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('禁用失败，请重试', 'error');
-        });
-    }
-    closeDeleteModal();
-}
-
-// 页面加载时检查是否有闪现消息
-document.addEventListener('DOMContentLoaded', function() {
-    const message = localStorage.getItem('flash_message');
-    const type = localStorage.getItem('flash_type');
-    if (message) {
-        showToast(message, type);
-        localStorage.removeItem('flash_message');
-        localStorage.removeItem('flash_type');
-    }
-});
-
-// 显示消息提示
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
+// 编辑用户相关函数
+function showEditUserModal(userId, username, email, phone) {
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('editPhone').value = phone;
     
-    // 3秒后自动移除
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    const form = document.getElementById('editUserForm');
+    form.action = `/admin/users/${userId}/edit`;
+    
+    document.getElementById('editUserModal').style.display = 'block';
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+
+// 删除用户相关函数
+function confirmDeleteUser(userId, username) {
+    document.getElementById('deleteUserName').textContent = username;
+    const form = document.getElementById('deleteUserForm');
+    form.action = `/admin/users/delete/${userId}`;
+    document.getElementById('deleteConfirmModal').style.display = 'block';
+}
+
+function closeDeleteConfirmModal() {
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+}
+
+// 关闭模态框的通用函数
+window.onclick = function(event) {
+    const addModal = document.getElementById('addUserModal');
+    const editModal = document.getElementById('editUserModal');
+    const deleteModal = document.getElementById('deleteConfirmModal');
+    
+    if (event.target == addModal) {
+        addModal.style.display = 'none';
+    }
+    if (event.target == editModal) {
+        editModal.style.display = 'none';
+    }
+    if (event.target == deleteModal) {
+        deleteModal.style.display = 'none';
+    }
 }
 </script>
 

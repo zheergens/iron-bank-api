@@ -13,7 +13,7 @@ class User(UserMixin, BaseModel):
         self.email = email
         self.phone = phone
         self.is_admin = is_admin
-        self._is_active = True
+        self.is_active = True  # 添加 is_active 字段，默认为 True
         self.created_at = datetime.utcnow().replace(tzinfo=None)
         self.updated_at = self.created_at
         if password:
@@ -149,7 +149,19 @@ class User(UserMixin, BaseModel):
     
     def save(self):
         """保存用户数据"""
-        data = self.to_dict()
+        data = {
+            'username': self.username,
+            'email': self.email,
+            'phone': self.phone,
+            'is_admin': self.is_admin,
+            'is_active': getattr(self, '_is_active', True),
+            'password_hash': getattr(self, 'password_hash', None),
+            'permissions': getattr(self, 'permissions', ['user']),
+            'created_at': getattr(self, 'created_at', datetime.utcnow().replace(tzinfo=None)),
+            'updated_at': datetime.utcnow().replace(tzinfo=None),
+            'last_login': getattr(self, 'last_login', None)
+        }
+        
         if hasattr(self, '_id') and self._id:
             self.collection().update_one(
                 {'_id': self._id},
@@ -158,17 +170,24 @@ class User(UserMixin, BaseModel):
         else:
             result = self.collection().insert_one(data)
             self._id = result.inserted_id
-        
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
     def to_dict(self):
         """将对象转换为字典"""
-        data = super().to_dict()
-        # 将 _is_active 转换为 is_active
-        if '_is_active' in data:
-            data['is_active'] = data.pop('_is_active')
-        return data
+        return {
+            'username': self.username,
+            'email': self.email,
+            'phone': self.phone,
+            'is_admin': self.is_admin,
+            'is_active': getattr(self, '_is_active', True),
+            'password_hash': getattr(self, 'password_hash', None),
+            'permissions': getattr(self, 'permissions', ['user']),
+            'created_at': getattr(self, 'created_at', None),
+            'updated_at': getattr(self, 'updated_at', None),
+            'last_login': getattr(self, 'last_login', None)
+        }
     
     @classmethod
     def from_dict(cls, data):

@@ -28,6 +28,13 @@ def login():
                 'message': '用户名或密码错误'
             }), 401
             
+        # 检查用户是否被禁用
+        if not user.is_active:
+            return jsonify({
+                'success': False,
+                'message': '账号已被禁用，请联系管理员'
+            }), 403
+            
         # 登录用户
         login_user(user)
         
